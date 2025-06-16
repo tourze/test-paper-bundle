@@ -91,7 +91,7 @@ class PaperScoringService
             return $customOptions['correctAnswer'];
         }
 
-        // 否则使用原始答案 - 兼容 exam-bundle 的方法
+        // 否则使用原始答案
         $apiArray = $question->retrieveApiArray();
         return $apiArray['correctLetters'] ?? [];
     }

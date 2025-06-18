@@ -3,9 +3,16 @@
 namespace Tourze\TestPaperBundle\Enum;
 
 use Tourze\Arrayable\Arrayable;
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
 
-enum SessionStatus: string implements Arrayable
+enum SessionStatus: string implements Arrayable, Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case PENDING = 'pending';           // 待开始
     case IN_PROGRESS = 'in_progress';   // 进行中
     case COMPLETED = 'completed';       // 已完成

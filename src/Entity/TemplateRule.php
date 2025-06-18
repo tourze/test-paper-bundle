@@ -10,27 +10,14 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\TestPaperBundle\Repository\TemplateRuleRepository;
 
 #[Copyable]
-#[AsPermission(title: '模板规则')]
-#[Creatable]
-#[Editable]
-#[Deletable]
 #[ORM\Entity(repositoryClass: TemplateRuleRepository::class)]
 #[ORM\Table(name: 'test_template_rule', options: ['comment' => '模板规则'])]
 class TemplateRule implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -45,52 +32,37 @@ class TemplateRule implements \Stringable, ApiArrayInterface
     #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
     private ?string $updatedBy = null;
 
-    #[ListColumn(title: '模板')]
-    #[FormField(title: '模板')]
     #[ORM\ManyToOne(inversedBy: 'rules')]
     #[ORM\JoinColumn(nullable: false)]
     private PaperTemplate $template;
 
-    #[ListColumn(title: '分类ID')]
-    #[FormField(title: '分类ID')]
     #[ORM\Column(nullable: true, options: ['comment' => '题目分类ID（来自question-bank-bundle）'])]
     private ?string $categoryId = null;
 
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '题目类型'])]
     private ?string $questionType = null;
 
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '难度等级'])]
     private ?string $difficulty = null;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '题目数量'])]
     private int $questionCount = 1;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '每题分数'])]
     private int $scorePerQuestion = 1;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '排序', 'default' => 0])]
     private int $sort = 0;
 
-    #[FormField]
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '标签过滤条件'])]
     private ?array $tagFilters = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true, options: ['comment' => '最小正确率'])]
     private ?string $minCorrectRate = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true, options: ['comment' => '最大正确率'])]
     private ?string $maxCorrectRate = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '排除已使用题目', 'default' => false])]
     private bool $excludeUsed = false;
 

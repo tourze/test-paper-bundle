@@ -9,21 +9,10 @@ use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\QuestionBankBundle\Entity\Question;
 use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 
 #[Copyable]
-#[AsPermission(title: '试卷题目')]
-#[Creatable]
-#[Editable]
-#[Deletable]
 #[ORM\Entity(repositoryClass: PaperQuestionRepository::class)]
 #[ORM\Table(name: 'test_paper_question', options: ['comment' => '试卷题目关联表'])]
 #[ORM\Index(columns: ['paper_id', 'sort_order'], name: 'idx_paper_sort')]
@@ -32,43 +21,32 @@ class PaperQuestion implements \Stringable, ApiArrayInterface
     use TimestampableAware;
     use BlameableAware;
 
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
 
-    #[ListColumn(title: '试卷')]
-    #[FormField(title: '试卷')]
     #[ORM\ManyToOne(inversedBy: 'paperQuestions')]
     #[ORM\JoinColumn(nullable: false)]
     private TestPaper $paper;
 
-    #[ListColumn(title: '题目')]
-    #[FormField(title: '题目')]
     #[ORM\ManyToOne(targetEntity: Question::class)]
     #[ORM\JoinColumn(referencedColumnName: 'uuid', nullable: false)]
     private Question $question;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '排序顺序', 'default' => 0])]
     private int $sortOrder = 0;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '题目分数'])]
     private int $score = 1;
 
-    #[FormField]
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '自定义选项（用于随机化选项）'])]
     private ?array $customOptions = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否必答题', 'default' => true])]
     private bool $isRequired = true;
 
-    #[FormField]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '备注'])]
     private ?string $remark = null;
 

@@ -3,9 +3,16 @@
 namespace Tourze\TestPaperBundle\Enum;
 
 use Tourze\Arrayable\Arrayable;
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
 
-enum PaperStatus: string implements Arrayable
+enum PaperStatus: string implements Arrayable, Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case DRAFT = 'draft';           // 草稿
     case PUBLISHED = 'published';   // 已发布
     case ARCHIVED = 'archived';     // 已归档

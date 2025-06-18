@@ -3,9 +3,16 @@
 namespace Tourze\TestPaperBundle\Enum;
 
 use Tourze\Arrayable\Arrayable;
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
 
-enum PaperGenerationType: string implements Arrayable
+enum PaperGenerationType: string implements Arrayable, Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case MANUAL = 'manual';         // 手动选题
     case TEMPLATE = 'template';     // 模板组卷
     case RANDOM = 'random';         // 随机组卷

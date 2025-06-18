@@ -12,30 +12,17 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
 use Tourze\EasyAdmin\Attribute\Column\CopyColumn;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\TestPaperBundle\Enum\PaperGenerationType;
 use Tourze\TestPaperBundle\Enum\PaperStatus;
 use Tourze\TestPaperBundle\Repository\TestPaperRepository;
 
 #[Copyable]
-#[AsPermission(title: '试卷')]
-#[Deletable]
-#[Editable]
-#[Creatable]
 #[ORM\Entity(repositoryClass: TestPaperRepository::class)]
 #[ORM\Table(name: 'test_paper', options: ['comment' => '试卷'])]
 class TestPaper implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -51,38 +38,27 @@ class TestPaper implements \Stringable, ApiArrayInterface
     private ?string $updatedBy = null;
 
     #[CopyColumn(suffix: true)]
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(length: 120, unique: true, options: ['comment' => '试卷标题'])]
     private string $title;
 
-    #[FormField]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '试卷描述'])]
     private ?string $description = null;
 
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, enumType: PaperStatus::class, options: ['comment' => '试卷状态'])]
     private PaperStatus $status = PaperStatus::DRAFT;
 
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, enumType: PaperGenerationType::class, options: ['comment' => '组卷方式'])]
     private PaperGenerationType $generationType = PaperGenerationType::MANUAL;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '总分'])]
     private int $totalScore = 100;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '及格分数'])]
     private int $passScore = 60;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '考试时长（秒）'])]
     private ?int $timeLimit = null;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '题目总数'])]
     private int $questionCount = 0;
 
@@ -95,19 +71,15 @@ class TestPaper implements \Stringable, ApiArrayInterface
     #[ORM\OneToMany(mappedBy: 'paper', targetEntity: TestSession::class, orphanRemoval: true)]
     private Collection $sessions;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否随机排序题目', 'default' => false])]
     private bool $randomizeQuestions = false;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否随机排序选项', 'default' => false])]
     private bool $randomizeOptions = false;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否允许重做', 'default' => true])]
     private bool $allowRetake = true;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '最大重做次数'])]
     private ?int $maxAttempts = null;
 

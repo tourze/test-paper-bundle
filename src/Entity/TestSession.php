@@ -11,28 +11,15 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\TestPaperBundle\Enum\SessionStatus;
 use Tourze\TestPaperBundle\Repository\TestSessionRepository;
 
 #[Copyable]
-#[AsPermission(title: '考试会话')]
-#[Creatable]
-#[Editable]
-#[Deletable]
 #[ORM\Entity(repositoryClass: TestSessionRepository::class)]
 #[ORM\Table(name: 'test_session', options: ['comment' => '考试会话'])]
 class TestSession implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -47,72 +34,53 @@ class TestSession implements \Stringable, ApiArrayInterface
     #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
     private ?string $updatedBy = null;
 
-    #[ListColumn(title: '试卷')]
-    #[FormField(title: '试卷')]
     #[ORM\ManyToOne(inversedBy: 'sessions')]
     #[ORM\JoinColumn(nullable: false)]
     private TestPaper $paper;
 
-    #[ListColumn(title: '用户')]
-    #[FormField(title: '用户')]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private UserInterface $user;
 
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, enumType: SessionStatus::class, options: ['comment' => '会话状态'])]
     private SessionStatus $status = SessionStatus::PENDING;
 
-    #[FormField]
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '开始时间'])]
     private ?\DateTimeInterface $startTime = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '结束时间'])]
     private ?\DateTimeInterface $endTime = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '到期时间'])]
     private ?\DateTimeInterface $expiresAt = null;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '得分'])]
     private ?int $score = null;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '总分'])]
     private ?int $totalScore = null;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '尝试次数', 'default' => 1])]
     private int $attemptNumber = 1;
 
-    #[FormField]
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '用户答案'])]
     private ?array $answers = null;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '用时（秒）'])]
     private ?int $duration = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否通过', 'default' => false])]
     private bool $passed = false;
 
-    #[FormField]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '备注'])]
     private ?string $remark = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '题目答题时间记录'])]
     private ?array $questionTimings = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '当前题目开始时间'])]
     private ?\DateTimeInterface $currentQuestionStartTime = null;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '当前题目ID'])]
     private ?string $currentQuestionId = null;
 

@@ -12,28 +12,15 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
 use Tourze\EasyAdmin\Attribute\Column\CopyColumn;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\TestPaperBundle\Repository\PaperTemplateRepository;
 
 #[Copyable]
-#[AsPermission(title: '试卷模板')]
-#[Creatable]
-#[Editable]
-#[Deletable]
 #[ORM\Entity(repositoryClass: PaperTemplateRepository::class)]
 #[ORM\Table(name: 'test_paper_template', options: ['comment' => '试卷模板'])]
 class PaperTemplate implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -48,49 +35,37 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
     #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
     private ?string $updatedBy = null;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '及格分数', 'default' => 60])]
     private int $passScore = 60;
     
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否打乱题目', 'default' => false])]
     private bool $shuffleQuestions = false;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否打乱选项', 'default' => false])]
     private bool $shuffleOptions = false;
 
     #[CopyColumn(suffix: true)]
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(length: 120, options: ['comment' => '模板名称'])]
     private string $name;
 
-    #[FormField]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '模板描述'])]
     private ?string $description = null;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '总题数'])]
     private int $totalQuestions = 0;
 
-    #[FormField]
     #[ORM\Column(options: ['comment' => '总分'])]
     private int $totalScore = 100;
 
-    #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '考试时长（分钟）'])]
     private ?int $timeLimit = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '难度分布配置'])]
     private ?array $difficultyDistribution = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '题型分布配置'])]
     private ?array $questionTypeDistribution = null;
 
-    #[FormField]
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否启用', 'default' => true])]
     private bool $isActive = true;
 
@@ -311,7 +286,6 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
         return $this;
     }
 
-    #[ListColumn(title: '规则数量')]
     public function getRuleCount(): int
     {
         return $this->rules->count();

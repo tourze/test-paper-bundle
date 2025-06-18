@@ -6,10 +6,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Tourze\Arrayable\ApiArrayInterface;
-use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
-use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
-use Tourze\DoctrineTimestampBundle\Attribute\UpdateTimeColumn;
+use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
@@ -19,7 +17,6 @@ use Tourze\EasyAdmin\Attribute\Action\Editable;
 use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
 use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Filter\Filterable;
 use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\TestPaperBundle\Enum\SessionStatus;
 use Tourze\TestPaperBundle\Repository\TestSessionRepository;
@@ -33,21 +30,7 @@ use Tourze\TestPaperBundle\Repository\TestSessionRepository;
 #[ORM\Table(name: 'test_session', options: ['comment' => '考试会话'])]
 class TestSession implements \Stringable, ApiArrayInterface
 {
-    #[Filterable]
-    #[IndexColumn]
-    #[ListColumn(order: 98, sorter: true)]
-    #[ExportColumn]
-    #[CreateTimeColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '创建时间'])]
-    private ?\DateTimeInterface $createTime = null;
-
-    #[UpdateTimeColumn]
-    #[ListColumn(order: 99, sorter: true)]
-    #[Filterable]
-    #[ExportColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '更新时间'])]
-    private ?\DateTimeInterface $updateTime = null;
-
+    use TimestampableAware;
     #[ExportColumn]
     #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
@@ -132,7 +115,6 @@ class TestSession implements \Stringable, ApiArrayInterface
     #[FormField]
     #[ORM\Column(nullable: true, options: ['comment' => '当前题目ID'])]
     private ?string $currentQuestionId = null;
-
 
     public function __toString(): string
     {
@@ -455,29 +437,7 @@ class TestSession implements \Stringable, ApiArrayInterface
     {
         $this->paper = $paper;
         return $this;
-    }
-
-    public function getCreateTime(): ?\DateTimeInterface
-    {
-        return $this->createTime;
-    }
-
-    public function setCreateTime(?\DateTimeInterface $createTime): void
-    {
-        $this->createTime = $createTime;
-    }
-
-    public function getUpdateTime(): ?\DateTimeInterface
-    {
-        return $this->updateTime;
-    }
-
-    public function setUpdateTime(?\DateTimeInterface $updateTime): void
-    {
-        $this->updateTime = $updateTime;
-    }
-
-    public function getAnswers(): ?array
+    }public function getAnswers(): ?array
     {
         return $this->answers;
     }

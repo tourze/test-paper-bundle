@@ -7,10 +7,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Tourze\Arrayable\ApiArrayInterface;
-use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
-use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
-use Tourze\DoctrineTimestampBundle\Attribute\UpdateTimeColumn;
+use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
 use Tourze\EasyAdmin\Attribute\Action\Copyable;
@@ -21,7 +19,6 @@ use Tourze\EasyAdmin\Attribute\Column\CopyColumn;
 use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
 use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Filter\Filterable;
 use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\TestPaperBundle\Repository\PaperTemplateRepository;
 
@@ -34,21 +31,7 @@ use Tourze\TestPaperBundle\Repository\PaperTemplateRepository;
 #[ORM\Table(name: 'test_paper_template', options: ['comment' => '试卷模板'])]
 class PaperTemplate implements \Stringable, ApiArrayInterface
 {
-    #[Filterable]
-    #[IndexColumn]
-    #[ListColumn(order: 98, sorter: true)]
-    #[ExportColumn]
-    #[CreateTimeColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '创建时间'])]
-    private ?\DateTimeInterface $createTime = null;
-
-    #[UpdateTimeColumn]
-    #[ListColumn(order: 99, sorter: true)]
-    #[Filterable]
-    #[ExportColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '更新时间'])]
-    private ?\DateTimeInterface $updateTime = null;
-
+    use TimestampableAware;
     #[ExportColumn]
     #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
@@ -332,29 +315,7 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
     public function getRuleCount(): int
     {
         return $this->rules->count();
-    }
-
-    public function getCreateTime(): ?\DateTimeInterface
-    {
-        return $this->createTime;
-    }
-
-    public function setCreateTime(?\DateTimeInterface $createTime): void
-    {
-        $this->createTime = $createTime;
-    }
-
-    public function getUpdateTime(): ?\DateTimeInterface
-    {
-        return $this->updateTime;
-    }
-
-    public function setUpdateTime(?\DateTimeInterface $updateTime): void
-    {
-        $this->updateTime = $updateTime;
-    }
-
-    /**
+    }/**
      * @return Collection<int, TemplateRule>
      */
     public function getRules(): Collection

@@ -8,11 +8,9 @@ use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
-use Tourze\EasyAdmin\Attribute\Action\Copyable;
 use Tourze\QuestionBankBundle\Entity\Question;
 use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 
-#[Copyable]
 #[ORM\Entity(repositoryClass: PaperQuestionRepository::class)]
 #[ORM\Table(name: 'test_paper_question', options: ['comment' => '试卷题目关联表'])]
 #[ORM\Index(columns: ['paper_id', 'sort_order'], name: 'idx_paper_sort')]

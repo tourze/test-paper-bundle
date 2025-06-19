@@ -9,31 +9,22 @@ use Doctrine\ORM\Mapping as ORM;
 use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
-use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
-use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Column\CopyColumn;
+use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\TestPaperBundle\Repository\PaperTemplateRepository;
 
-#[Copyable]
 #[ORM\Entity(repositoryClass: PaperTemplateRepository::class)]
 #[ORM\Table(name: 'test_paper_template', options: ['comment' => '试卷模板'])]
 class PaperTemplate implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
+    use BlameableAware;
+    
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
 
-    #[CreatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
-    private ?string $updatedBy = null;
 
     #[ORM\Column(options: ['comment' => '及格分数', 'default' => 60])]
     private int $passScore = 60;
@@ -44,7 +35,6 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否打乱选项', 'default' => false])]
     private bool $shuffleOptions = false;
 
-    #[CopyColumn(suffix: true)]
     #[ORM\Column(length: 120, options: ['comment' => '模板名称'])]
     private string $name;
 
@@ -102,27 +92,6 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
         return $this;
     }
 
-    public function getCreatedBy(): ?string
-    {
-        return $this->createdBy;
-    }
-
-    public function setCreatedBy(?string $createdBy): self
-    {
-        $this->createdBy = $createdBy;
-        return $this;
-    }
-
-    public function getUpdatedBy(): ?string
-    {
-        return $this->updatedBy;
-    }
-
-    public function setUpdatedBy(?string $updatedBy): self
-    {
-        $this->updatedBy = $updatedBy;
-        return $this;
-    }
 
     public function addRule(TemplateRule $rule): static
     {

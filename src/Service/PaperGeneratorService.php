@@ -40,10 +40,10 @@ class PaperGeneratorService
         
         foreach ($template->getRules() as $rule) {
             $criteria = new SearchCriteria();
-            if ($rule->getCategoryId()) {
+            if ($rule->getCategoryId() !== null) {
                 $criteria->setCategoryIds([$rule->getCategoryId()]);
             }
-            if ($rule->getQuestionType()) {
+            if ($rule->getQuestionType() !== null) {
                 $criteria->setTypes([QuestionType::from($rule->getQuestionType())]);
             }
             $criteria->setLimit($rule->getQuestionCount());
@@ -200,7 +200,6 @@ class PaperGeneratorService
             QuestionType::MULTIPLE_CHOICE => 5,
             QuestionType::FILL_BLANK => 5,
             QuestionType::ESSAY => 20,
-            default => 5,
         };
 
         // 难度系数

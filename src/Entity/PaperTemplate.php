@@ -62,6 +62,10 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
     #[ORM\OneToMany(mappedBy: 'template', targetEntity: TemplateRule::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $rules;
 
+    #[ORM\ManyToOne(targetEntity: TestPaper::class, inversedBy: 'templates')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?TestPaper $paper = null;
+
     public function __construct()
     {
         $this->rules = new ArrayCollection();
@@ -69,7 +73,7 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
@@ -105,12 +109,18 @@ class PaperTemplate implements \Stringable, ApiArrayInterface
 
     public function removeRule(TemplateRule $rule): static
     {
-        if ($this->rules->removeElement($rule)) {
-            if ($rule->getTemplate() === $this) {
-                $rule->setTemplate(null);
-            }
-        }
+        $this->rules->removeElement($rule);
+        return $this;
+    }
 
+    public function getPaper(): ?TestPaper
+    {
+        return $this->paper;
+    }
+
+    public function setPaper(?TestPaper $paper): static
+    {
+        $this->paper = $paper;
         return $this;
     }
 

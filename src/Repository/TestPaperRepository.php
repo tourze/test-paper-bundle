@@ -33,7 +33,7 @@ class TestPaperRepository extends ServiceEntityRepository
             ->andWhere('p.createdBy = :createdBy')
             ->setParameter('createdBy', $createdBy);
 
-        if ($status) {
+        if ($status !== null) {
             $qb->andWhere('p.status = :status')
                ->setParameter('status', $status);
         }

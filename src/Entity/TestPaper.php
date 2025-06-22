@@ -9,35 +9,24 @@ use Doctrine\ORM\Mapping as ORM;
 use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
-use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
-use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Copyable;
-use Tourze\EasyAdmin\Attribute\Column\CopyColumn;
+use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\TestPaperBundle\Enum\PaperGenerationType;
 use Tourze\TestPaperBundle\Enum\PaperStatus;
 use Tourze\TestPaperBundle\Repository\TestPaperRepository;
 
-#[Copyable]
 #[ORM\Entity(repositoryClass: TestPaperRepository::class)]
 #[ORM\Table(name: 'test_paper', options: ['comment' => '试卷'])]
 class TestPaper implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
+    use BlameableAware;
+    
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
 
-    #[CreatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
-    private ?string $updatedBy = null;
-
-    #[CopyColumn(suffix: true)]
     #[ORM\Column(length: 120, unique: true, options: ['comment' => '试卷标题'])]
     private string $title;
 
@@ -92,7 +81,7 @@ class TestPaper implements \Stringable, ApiArrayInterface
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
@@ -112,28 +101,6 @@ class TestPaper implements \Stringable, ApiArrayInterface
     public function setTitle(string $title): static
     {
         $this->title = $title;
-        return $this;
-    }
-
-    public function getCreatedBy(): ?string
-    {
-        return $this->createdBy;
-    }
-
-    public function setCreatedBy(?string $createdBy): self
-    {
-        $this->createdBy = $createdBy;
-        return $this;
-    }
-
-    public function getUpdatedBy(): ?string
-    {
-        return $this->updatedBy;
-    }
-
-    public function setUpdatedBy(?string $updatedBy): self
-    {
-        $this->updatedBy = $updatedBy;
         return $this;
     }
 
@@ -157,12 +124,7 @@ class TestPaper implements \Stringable, ApiArrayInterface
 
     public function removePaperQuestion(PaperQuestion $paperQuestion): static
     {
-        if ($this->paperQuestions->removeElement($paperQuestion)) {
-            if ($paperQuestion->getPaper() === $this) {
-                $paperQuestion->setPaper(null);
-            }
-        }
-
+        $this->paperQuestions->removeElement($paperQuestion);
         return $this;
     }
 
@@ -215,12 +177,7 @@ class TestPaper implements \Stringable, ApiArrayInterface
 
     public function removeSession(TestSession $session): static
     {
-        if ($this->sessions->removeElement($session)) {
-            if ($session->getPaper() === $this) {
-                $session->setPaper(null);
-            }
-        }
-
+        $this->sessions->removeElement($session);
         return $this;
     }
 

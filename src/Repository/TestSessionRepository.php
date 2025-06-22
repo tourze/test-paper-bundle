@@ -25,7 +25,7 @@ class TestSessionRepository extends ServiceEntityRepository
             ->andWhere('ts.user = :user')
             ->setParameter('user', $user);
 
-        if ($status) {
+        if ($status !== null) {
             $qb->andWhere('ts.status = :status')
                ->setParameter('status', $status);
         }
@@ -41,7 +41,7 @@ class TestSessionRepository extends ServiceEntityRepository
             ->andWhere('ts.paper = :paper')
             ->setParameter('paper', $paper);
 
-        if ($status) {
+        if ($status !== null) {
             $qb->andWhere('ts.status = :status')
                ->setParameter('status', $status);
         }
@@ -72,7 +72,7 @@ class TestSessionRepository extends ServiceEntityRepository
             ->andWhere('ts.status = :status')
             ->andWhere('ts.expiresAt < :now')
             ->setParameter('status', SessionStatus::IN_PROGRESS)
-            ->setParameter('now', new \DateTime())
+            ->setParameter('now', new \DateTimeImmutable())
             ->getQuery()
             ->getResult();
     }
@@ -139,7 +139,7 @@ class TestSessionRepository extends ServiceEntityRepository
             ->setParameter('status', SessionStatus::COMPLETED)
             ->orderBy('ts.endTime', 'DESC');
 
-        if ($limit) {
+        if ($limit !== null) {
             $qb->setMaxResults($limit);
         }
 

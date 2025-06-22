@@ -57,7 +57,7 @@ class PaperService
             'question' => $question
         ]);
         
-        if ($existing) {
+        if ($existing !== null) {
             throw new \InvalidArgumentException('题目已存在于试卷中');
         }
         
@@ -197,7 +197,7 @@ class PaperService
             $paperQuestion->setSortOrder($sortOrder++);
         }
 
-        $paper->setShuffleQuestions(true);
+        $paper->setRandomizeQuestions(true);
         $this->entityManager->flush();
     }
 
@@ -215,20 +215,24 @@ class PaperService
             }
 
             $options = $question->getOptions();
-            if (empty($options)) {
+            if ($options === null || $options->isEmpty()) {
                 continue;
             }
+            
+            $optionsArray = $options->toArray();
 
             // 保存原始答案索引
             $correctAnswers = [];
-            foreach ($question->getCorrectAnswer() as $answer) {
-                if (isset($options[$answer])) {
-                    $correctAnswers[] = $options[$answer];
+            $apiArray = $question->retrieveApiArray();
+            $correctLetters = $apiArray['correctLetters'] ?? [];
+            foreach ($correctLetters as $letter) {
+                if (isset($optionsArray[$letter])) {
+                    $correctAnswers[] = $optionsArray[$letter];
                 }
             }
 
             // 打乱选项
-            $shuffledOptions = $options;
+            $shuffledOptions = $optionsArray;
             shuffle($shuffledOptions);
 
             // 更新正确答案索引
@@ -247,7 +251,7 @@ class PaperService
             ]);
         }
 
-        $paper->setShuffleOptions(true);
+        $paper->setRandomizeOptions(true);
         $this->entityManager->flush();
     }
 

@@ -8,31 +8,22 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
-use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
-use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Copyable;
+use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\TestPaperBundle\Enum\SessionStatus;
 use Tourze\TestPaperBundle\Repository\TestSessionRepository;
 
-#[Copyable]
 #[ORM\Entity(repositoryClass: TestSessionRepository::class)]
 #[ORM\Table(name: 'test_session', options: ['comment' => '考试会话'])]
 class TestSession implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
+    use BlameableAware;
+    
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
-
-    #[CreatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
-    private ?string $updatedBy = null;
 
     #[ORM\ManyToOne(inversedBy: 'sessions')]
     #[ORM\JoinColumn(nullable: false)]
@@ -45,13 +36,13 @@ class TestSession implements \Stringable, ApiArrayInterface
     #[ORM\Column(type: Types::STRING, enumType: SessionStatus::class, options: ['comment' => '会话状态'])]
     private SessionStatus $status = SessionStatus::PENDING;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '开始时间'])]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '开始时间'])]
     private ?\DateTimeInterface $startTime = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '结束时间'])]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '结束时间'])]
     private ?\DateTimeInterface $endTime = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '到期时间'])]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '到期时间'])]
     private ?\DateTimeInterface $expiresAt = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '得分'])]
@@ -78,7 +69,7 @@ class TestSession implements \Stringable, ApiArrayInterface
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '题目答题时间记录'])]
     private ?array $questionTimings = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '当前题目开始时间'])]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '当前题目开始时间'])]
     private ?\DateTimeInterface $currentQuestionStartTime = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '当前题目ID'])]
@@ -86,7 +77,7 @@ class TestSession implements \Stringable, ApiArrayInterface
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
@@ -96,28 +87,6 @@ class TestSession implements \Stringable, ApiArrayInterface
     public function getId(): ?string
     {
         return $this->id;
-    }
-
-    public function getCreatedBy(): ?string
-    {
-        return $this->createdBy;
-    }
-
-    public function setCreatedBy(?string $createdBy): self
-    {
-        $this->createdBy = $createdBy;
-        return $this;
-    }
-
-    public function getUpdatedBy(): ?string
-    {
-        return $this->updatedBy;
-    }
-
-    public function setUpdatedBy(?string $updatedBy): self
-    {
-        $this->updatedBy = $updatedBy;
-        return $this;
     }
 
     public function getUser(): UserInterface
@@ -167,16 +136,16 @@ class TestSession implements \Stringable, ApiArrayInterface
     public function startQuestionTiming(string $questionId): void
     {
         $this->currentQuestionId = $questionId;
-        $this->currentQuestionStartTime = new \DateTime();
+        $this->currentQuestionStartTime = new \DateTimeImmutable();
     }
 
     public function recordQuestionTiming(string $questionId): int
     {
-        if ($this->currentQuestionId !== $questionId || !$this->currentQuestionStartTime) {
+        if ($this->currentQuestionId !== $questionId || $this->currentQuestionStartTime === null) {
             return 0;
         }
 
-        $endTime = new \DateTime();
+        $endTime = new \DateTimeImmutable();
         $duration = $endTime->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
 
         $timings = $this->questionTimings ?? [];
@@ -202,21 +171,21 @@ class TestSession implements \Stringable, ApiArrayInterface
 
     public function isCurrentQuestionExpired(int $timeLimit): bool
     {
-        if (!$this->currentQuestionStartTime) {
+        if ($this->currentQuestionStartTime === null) {
             return false;
         }
 
-        $elapsed = (new \DateTime())->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
+        $elapsed = (new \DateTimeImmutable())->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
         return $elapsed > $timeLimit;
     }
 
     public function getCurrentQuestionRemainingTime(int $timeLimit): int
     {
-        if (!$this->currentQuestionStartTime) {
+        if ($this->currentQuestionStartTime === null) {
             return $timeLimit;
         }
 
-        $elapsed = (new \DateTime())->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
+        $elapsed = (new \DateTimeImmutable())->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
         return max(0, $timeLimit - $elapsed);
     }
 
@@ -377,11 +346,11 @@ class TestSession implements \Stringable, ApiArrayInterface
 
     public function getRemainingTime(): ?int
     {
-        if (!$this->expiresAt || $this->status !== SessionStatus::IN_PROGRESS) {
+        if ($this->expiresAt === null || $this->status !== SessionStatus::IN_PROGRESS) {
             return null;
         }
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $remaining = $this->expiresAt->getTimestamp() - $now->getTimestamp();
 
         return max(0, $remaining);
@@ -389,11 +358,11 @@ class TestSession implements \Stringable, ApiArrayInterface
 
     public function isExpired(): bool
     {
-        if (!$this->expiresAt) {
+        if ($this->expiresAt === null) {
             return false;
         }
 
-        return new \DateTime() > $this->expiresAt;
+        return new \DateTimeImmutable() > $this->expiresAt;
     }
 
     public function getPaper(): TestPaper

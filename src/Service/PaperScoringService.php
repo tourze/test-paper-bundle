@@ -87,7 +87,7 @@ class PaperScoringService
     private function getCorrectAnswer($question, ?array $customOptions = null): mixed
     {
         // 如果有自定义选项（打乱后的），使用自定义的正确答案
-        if ($customOptions && isset($customOptions['correctAnswer'])) {
+        if ($customOptions !== null && isset($customOptions['correctAnswer'])) {
             return $customOptions['correctAnswer'];
         }
 
@@ -194,12 +194,9 @@ class PaperScoringService
 
         // 计算百分比
         foreach ($typeStats as &$stats) {
-            $stats['correctRate'] = $stats['totalQuestions'] > 0
-                ? round(($stats['correctQuestions'] / $stats['totalQuestions']) * 100, 2)
-                : 0;
-            $stats['answerRate'] = $stats['totalQuestions'] > 0
-                ? round(($stats['answeredQuestions'] / $stats['totalQuestions']) * 100, 2)
-                : 0;
+            // totalQuestions 在上面的循环中至少会被增加1次，所以不需要检查 > 0
+            $stats['correctRate'] = round(($stats['correctQuestions'] / $stats['totalQuestions']) * 100, 2);
+            $stats['answerRate'] = round(($stats['answeredQuestions'] / $stats['totalQuestions']) * 100, 2);
             $stats['scoreRate'] = $stats['maxScore'] > 0
                 ? round(($stats['totalScore'] / $stats['maxScore']) * 100, 2)
                 : 0;

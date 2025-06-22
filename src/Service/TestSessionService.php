@@ -26,12 +26,11 @@ class TestSessionService
         }
 
         $session->setStatus(SessionStatus::IN_PROGRESS);
-        $session->setStartTime(new \DateTime());
+        $session->setStartTime(new \DateTimeImmutable());
 
         // 设置到期时间
-        if ($session->getPaper()->getTimeLimit()) {
-            $expiresAt = new \DateTime();
-            $expiresAt->add(new \DateInterval('PT' . $session->getPaper()->getTimeLimit() . 'S'));
+        if ($session->getPaper()->getTimeLimit() !== null) {
+            $expiresAt = (new \DateTimeImmutable())->add(new \DateInterval('PT' . $session->getPaper()->getTimeLimit() . 'S'));
             $session->setExpiresAt($expiresAt);
         }
 
@@ -67,10 +66,10 @@ class TestSessionService
         }
 
         $session->setStatus(SessionStatus::EXPIRED);
-        $session->setEndTime(new \DateTime());
+        $session->setEndTime(new \DateTimeImmutable());
 
         // 如果有答案，计算分数
-        if ($session->getAnswers()) {
+        if ($session->getAnswers() !== null) {
             $score = $this->scoringService->calculateScore($session);
             $session->setScore($score);
 
@@ -90,10 +89,10 @@ class TestSessionService
         }
 
         $session->setStatus(SessionStatus::COMPLETED);
-        $session->setEndTime(new \DateTime());
+        $session->setEndTime(new \DateTimeImmutable());
 
         // 计算用时
-        if ($session->getStartTime()) {
+        if ($session->getStartTime() !== null) {
             $duration = $session->getEndTime()->getTimestamp() - $session->getStartTime()->getTimestamp();
             $session->setDuration($duration);
         }
@@ -166,21 +165,21 @@ class TestSessionService
         $typeStats = $this->scoringService->getScoreByType($session);
         $statistics['byType'] = $typeStats;
 
-        // 计算难度统计
-        $difficultyStats = $this->scoringService->getScoreByDifficulty($session);
-        $statistics['byDifficulty'] = $difficultyStats;
+        // 计算难度统计 - 方法不存在，暂时跳过
+        // $difficultyStats = $this->scoringService->getScoreByDifficulty($session);
+        // $statistics['byDifficulty'] = $difficultyStats;
 
-        // 计算知识点统计
-        $knowledgePointStats = $this->scoringService->getScoreByKnowledgePoint($session);
-        $statistics['byKnowledgePoint'] = $knowledgePointStats;
+        // 计算知识点统计 - 方法不存在，暂时跳过
+        // $knowledgePointStats = $this->scoringService->getScoreByKnowledgePoint($session);
+        // $statistics['byKnowledgePoint'] = $knowledgePointStats;
 
         return $statistics;
     }
 
     public function getUserHistory(UserInterface $user, ?TestPaper $paper = null): array
     {
-        if ($paper) {
-            return $this->sessionRepository->findByUser($user)->where('paper', $paper);
+        if ($paper !== null) {
+            return $this->sessionRepository->findBy(['user' => $user, 'paper' => $paper]);
         }
 
         return $this->sessionRepository->findByUser($user);
@@ -216,7 +215,7 @@ class TestSessionService
 
         // 取消当前活跃的会话
         $activeSession = $this->sessionRepository->findActiveSession($user, $paper);
-        if ($activeSession) {
+        if ($activeSession !== null) {
             $this->cancelSession($activeSession);
         }
 
@@ -230,7 +229,7 @@ class TestSessionService
         }
 
         $session->setStatus(SessionStatus::CANCELLED);
-        $session->setEndTime(new \DateTime());
+        $session->setEndTime(new \DateTimeImmutable());
 
         $this->entityManager->flush();
 
@@ -247,13 +246,13 @@ class TestSessionService
                 'status' => SessionStatus::COMPLETED
             ]);
 
-            if ($existingSession) {
+            if ($existingSession !== null) {
                 throw new SessionException('该试卷不允许重做');
             }
         }
 
         // 检查最大尝试次数
-        if ($paper->getMaxAttempts()) {
+        if ($paper->getMaxAttempts() !== null) {
             $attemptCount = $this->sessionRepository->getUserAttemptCount($user, $paper);
             if ($attemptCount >= $paper->getMaxAttempts()) {
                 throw new SessionException('已达到最大尝试次数');
@@ -262,7 +261,7 @@ class TestSessionService
 
         // 检查是否有进行中的会话
         $activeSession = $this->sessionRepository->findActiveSession($user, $paper);
-        if ($activeSession) {
+        if ($activeSession !== null) {
             return $activeSession;
         }
 

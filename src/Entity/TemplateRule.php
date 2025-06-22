@@ -60,18 +60,18 @@ class TemplateRule implements \Stringable, ApiArrayInterface
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
         $parts = [];
-        if ($this->categoryId) {
+        if ($this->categoryId !== null) {
             $parts[] = "分类:{$this->categoryId}";
         }
-        if ($this->questionType) {
+        if ($this->questionType !== null) {
             $parts[] = $this->questionType;
         }
-        if ($this->difficulty) {
+        if ($this->difficulty !== null) {
             $parts[] = $this->difficulty;
         }
         $parts[] = "{$this->questionCount}题";

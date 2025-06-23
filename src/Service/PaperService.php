@@ -8,6 +8,7 @@ use Tourze\TestPaperBundle\Entity\PaperQuestion;
 use Tourze\TestPaperBundle\Entity\TestPaper;
 use Tourze\TestPaperBundle\Enum\PaperGenerationType;
 use Tourze\TestPaperBundle\Enum\PaperStatus;
+use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 
 /**
  * 试卷管理核心服务
@@ -15,7 +16,8 @@ use Tourze\TestPaperBundle\Enum\PaperStatus;
 class PaperService
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly PaperQuestionRepository $paperQuestionRepository
     ) {
     }
 
@@ -52,7 +54,7 @@ class PaperService
         int $sortOrder = 0
     ): PaperQuestion {
         // 检查题目是否已存在
-        $existing = $this->entityManager->getRepository(PaperQuestion::class)->findOneBy([
+        $existing = $this->paperQuestionRepository->findOneBy([
             'paper' => $paper,
             'question' => $question
         ]);

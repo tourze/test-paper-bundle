@@ -8,11 +8,13 @@ use Tourze\QuestionBankBundle\Entity\Question;
 use Tourze\TestPaperBundle\Entity\PaperQuestion;
 use Tourze\TestPaperBundle\Entity\TestPaper;
 use Tourze\TestPaperBundle\Enum\PaperStatus;
+use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 use Tourze\TestPaperBundle\Service\PaperService;
 
 class PaperServiceTest extends TestCase
 {
     private EntityManagerInterface $entityManager;
+    private PaperQuestionRepository $paperQuestionRepository;
     private PaperService $paperService;
 
     public function testCreatePaper(): void
@@ -50,6 +52,15 @@ class PaperServiceTest extends TestCase
         $mockId = $this->createMock(\Symfony\Component\Uid\Uuid::class);
         $mockId->method('__toString')->willReturn('test-uuid');
         $question->method('getId')->willReturn($mockId);
+
+        $this->paperQuestionRepository
+            ->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'paper' => $paper,
+                'question' => $question
+            ])
+            ->willReturn(null);
 
         $this->entityManager
             ->expects($this->once())
@@ -130,6 +141,7 @@ class PaperServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->paperService = new PaperService($this->entityManager);
+        $this->paperQuestionRepository = $this->createMock(PaperQuestionRepository::class);
+        $this->paperService = new PaperService($this->entityManager, $this->paperQuestionRepository);
     }
 }

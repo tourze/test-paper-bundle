@@ -6,7 +6,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Tourze\Arrayable\ApiArrayInterface;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\TestPaperBundle\Enum\SessionStatus;
@@ -18,12 +18,7 @@ class TestSession implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
     use BlameableAware;
-    
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
-    #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
-    private ?string $id = null;
+    use SnowflakeKeyAware;
 
     #[ORM\ManyToOne(inversedBy: 'sessions')]
     #[ORM\JoinColumn(nullable: false)]
@@ -84,10 +79,6 @@ class TestSession implements \Stringable, ApiArrayInterface
         return "#{$this->getId()} {$this->paper->getTitle()} - {$this->user->getUserIdentifier()}";
     }
 
-    public function getId(): ?string
-    {
-        return $this->id;
-    }
 
     public function getUser(): UserInterface
     {

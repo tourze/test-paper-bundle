@@ -8,6 +8,7 @@ use Tourze\TestPaperBundle\Entity\PaperQuestion;
 use Tourze\TestPaperBundle\Entity\TestPaper;
 use Tourze\TestPaperBundle\Enum\PaperGenerationType;
 use Tourze\TestPaperBundle\Enum\PaperStatus;
+use Tourze\TestPaperBundle\Exception\PaperException;
 use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 
 /**
@@ -60,14 +61,14 @@ class PaperService
         ]);
         
         if ($existing !== null) {
-            throw new \InvalidArgumentException('题目已存在于试卷中');
+            throw new PaperException('题目已存在于试卷中');
         }
         
         $paperQuestion = new PaperQuestion();
         $paperQuestion->setPaper($paper);
         $paperQuestion->setQuestion($question);
         $paperQuestion->setScore($score);
-        $paperQuestion->setSortOrder($sortOrder ?: $this->getNextSortOrder($paper));
+        $paperQuestion->setSortOrder($sortOrder !== 0 ? $sortOrder : $this->getNextSortOrder($paper));
         
         $paper->addPaperQuestion($paperQuestion);
         $this->updatePaperStatistics($paper);
@@ -145,7 +146,7 @@ class PaperService
     public function removeQuestion(TestPaper $paper, PaperQuestion $paperQuestion): void
     {
         if ($paperQuestion->getPaper() !== $paper) {
-            throw new \InvalidArgumentException('题目不属于该试卷');
+            throw new PaperException('题目不属于该试卷');
         }
 
         $paper->removePaperQuestion($paperQuestion);
@@ -263,11 +264,11 @@ class PaperService
     public function publishPaper(TestPaper $paper): void
     {
         if ($paper->getStatus() !== PaperStatus::DRAFT) {
-            throw new \InvalidArgumentException('只有草稿状态的试卷可以发布');
+            throw new PaperException('只有草稿状态的试卷可以发布');
         }
 
         if ($paper->getQuestionCount() === 0) {
-            throw new \InvalidArgumentException('试卷中没有题目');
+            throw new PaperException('试卷中没有题目');
         }
 
         $paper->setStatus(PaperStatus::PUBLISHED);
@@ -280,7 +281,7 @@ class PaperService
     public function archivePaper(TestPaper $paper): void
     {
         if ($paper->getStatus() !== PaperStatus::PUBLISHED) {
-            throw new \InvalidArgumentException('只有已发布的试卷可以归档');
+            throw new PaperException('只有已发布的试卷可以归档');
         }
 
         $paper->setStatus(PaperStatus::ARCHIVED);

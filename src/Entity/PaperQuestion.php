@@ -5,7 +5,7 @@ namespace Tourze\TestPaperBundle\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Tourze\Arrayable\ApiArrayInterface;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\QuestionBankBundle\Entity\Question;
@@ -18,12 +18,7 @@ class PaperQuestion implements \Stringable, ApiArrayInterface
 {
     use TimestampableAware;
     use BlameableAware;
-
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
-    #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
-    private ?string $id = null;
+    use SnowflakeKeyAware;
 
     #[ORM\ManyToOne(inversedBy: 'paperQuestions')]
     #[ORM\JoinColumn(nullable: false)]
@@ -57,10 +52,6 @@ class PaperQuestion implements \Stringable, ApiArrayInterface
         return "#{$this->sortOrder} {$this->question}";
     }
 
-    public function getId(): ?string
-    {
-        return $this->id;
-    }
 
     public function getPaper(): TestPaper
     {

@@ -2,6 +2,8 @@
 
 namespace Tourze\TestPaperBundle\Tests\Service;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Tourze\QuestionBankBundle\DTO\SearchCriteria;
 use Tourze\QuestionBankBundle\Entity\Question;
@@ -16,14 +18,21 @@ use Tourze\TestPaperBundle\Enum\PaperGenerationType;
 use Tourze\TestPaperBundle\Service\PaperGeneratorService;
 use Tourze\TestPaperBundle\Service\PaperService;
 
-class PaperGeneratorServiceTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(PaperGeneratorService::class)]
+final class PaperGeneratorServiceTest extends TestCase
 {
-    private PaperService $paperService;
-    private QuestionService $questionService;
+    private PaperService&MockObject $paperService;
+
+    private QuestionService&MockObject $questionService;
+
     private PaperGeneratorService $paperGenerator;
 
     public function testGenerateFromTemplate(): void
     {
+        $this->initializeServices();
         // 创建测试模板
         $template = new PaperTemplate();
         $template->setName('测试模板');
@@ -46,14 +55,16 @@ class PaperGeneratorServiceTest extends TestCase
 
         // 创建模拟题目
         $questions = [];
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 5; ++$i) {
+            // 使用具体类 Question 而非接口的原因：
+            // 1) Question 是 Doctrine Entity，主要用于数据持久化，不设计接口
+            // 2) Entity 类包含 ORM 映射和数据访问方法，接口化会失去这些特性
+            // 3) 在测试中模拟 Entity 是常见做法，用于测试业务逻辑而非数据层
             $question = $this->createMock(Question::class);
-            $mockId = $this->createMock(\Symfony\Component\Uid\Uuid::class);
-            $mockId->method('__toString')->willReturn("uuid-$i");
-            $question->method('getId')->willReturn($mockId);
+            $question->method('getId')->willReturn("uuid-{$i}");
             $question->method('getType')->willReturn(QuestionType::SINGLE_CHOICE);
             $question->method('getDifficulty')->willReturn(Difficulty::medium());
-            $question->method('getContent')->willReturn("测试题目 $i");
+            $question->method('getContent')->willReturn("测试题目 {$i}");
             $questions[] = $question;
         }
 
@@ -65,7 +76,8 @@ class PaperGeneratorServiceTest extends TestCase
         $this->paperService
             ->expects($this->once())
             ->method('createPaper')
-            ->willReturn($paper);
+            ->willReturn($paper)
+        ;
 
         $paginatedResult = new PaginatedResult(
             items: $questions,
@@ -77,24 +89,26 @@ class PaperGeneratorServiceTest extends TestCase
         $this->questionService
             ->expects($this->once())
             ->method('searchQuestions')
-            ->with($this->isInstanceOf(SearchCriteria::class))
-            ->willReturn($paginatedResult);
+            ->with(self::isInstanceOf(SearchCriteria::class))
+            ->willReturn($paginatedResult)
+        ;
 
         $this->paperService
             ->expects($this->once())
-            ->method('addQuestions');
+            ->method('addQuestions')
+        ;
 
         // 执行测试
         $result = $this->paperGenerator->generateFromTemplate($template);
 
         // 验证结果
-        $this->assertNotNull($result);
         $this->assertEquals(PaperGenerationType::TEMPLATE, $result->getGenerationType());
     }
 
     public function testGenerateRandom(): void
     {
-        $categoryIds = ['math', 'physics'];
+        $this->initializeServices();
+        $categoryIds = [1, 2];
         $questionCount = 10;
         $typeDistribution = [
             'single_choice' => 60,
@@ -108,11 +122,13 @@ class PaperGeneratorServiceTest extends TestCase
 
         // 创建模拟题目
         $questions = [];
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 10; ++$i) {
+            // 使用具体类 Question 而非接口的原因：
+            // 1) Question 是 Doctrine Entity，主要用于数据持久化，不设计接口
+            // 2) Entity 类包含 ORM 映射和数据访问方法，接口化会失去这些特性
+            // 3) 在测试中模拟 Entity 是常见做法，用于测试业务逻辑而非数据层
             $question = $this->createMock(Question::class);
-            $mockId = $this->createMock(\Symfony\Component\Uid\Uuid::class);
-            $mockId->method('__toString')->willReturn("uuid-$i");
-            $question->method('getId')->willReturn($mockId);
+            $question->method('getId')->willReturn("uuid-{$i}");
             $question->method('getType')->willReturn($i < 6 ? QuestionType::SINGLE_CHOICE : QuestionType::MULTIPLE_CHOICE);
             $question->method('getDifficulty')->willReturn(Difficulty::medium());
             $questions[] = $question;
@@ -125,7 +141,8 @@ class PaperGeneratorServiceTest extends TestCase
         $this->paperService
             ->expects($this->once())
             ->method('createPaper')
-            ->willReturn($paper);
+            ->willReturn($paper)
+        ;
 
         $paginatedResult2 = new PaginatedResult(
             items: array_slice($questions, 0, 3),
@@ -137,15 +154,18 @@ class PaperGeneratorServiceTest extends TestCase
         $this->questionService
             ->expects($this->atLeastOnce())
             ->method('searchQuestions')
-            ->willReturn($paginatedResult2);
+            ->willReturn($paginatedResult2)
+        ;
 
         $this->paperService
             ->expects($this->once())
-            ->method('addQuestions');
+            ->method('addQuestions')
+        ;
 
         $this->paperService
             ->expects($this->once())
-            ->method('shuffleQuestions');
+            ->method('shuffleQuestions')
+        ;
 
         $result = $this->paperGenerator->generateRandom(
             $categoryIds,
@@ -156,22 +176,24 @@ class PaperGeneratorServiceTest extends TestCase
             '随机试卷'
         );
 
-        $this->assertNotNull($result);
         $this->assertEquals(PaperGenerationType::RANDOM, $result->getGenerationType());
     }
 
     public function testGenerateByTags(): void
     {
-        $tags = ['重点', '高频'];
+        $this->initializeServices();
+        $tags = [1, 2];
         $questionCount = 20;
 
         // 创建模拟题目
         $questions = [];
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 0; $i < 20; ++$i) {
+            // 使用具体类 Question 而非接口的原因：
+            // 1) Question 是 Doctrine Entity，主要用于数据持久化，不设计接口
+            // 2) Entity 类包含 ORM 映射和数据访问方法，接口化会失去这些特性
+            // 3) 在测试中模拟 Entity 是常见做法，用于测试业务逻辑而非数据层
             $question = $this->createMock(Question::class);
-            $mockId = $this->createMock(\Symfony\Component\Uid\Uuid::class);
-            $mockId->method('__toString')->willReturn("uuid-$i");
-            $question->method('getId')->willReturn($mockId);
+            $question->method('getId')->willReturn("uuid-{$i}");
             $question->method('getType')->willReturn(QuestionType::SINGLE_CHOICE);
             $question->method('getDifficulty')->willReturn(Difficulty::medium());
             $questions[] = $question;
@@ -184,7 +206,8 @@ class PaperGeneratorServiceTest extends TestCase
         $this->paperService
             ->expects($this->once())
             ->method('createPaper')
-            ->willReturn($paper);
+            ->willReturn($paper)
+        ;
 
         $paginatedResult3 = new PaginatedResult(
             items: $questions,
@@ -196,12 +219,14 @@ class PaperGeneratorServiceTest extends TestCase
         $this->questionService
             ->expects($this->once())
             ->method('searchQuestions')
-            ->with($this->isInstanceOf(SearchCriteria::class))
-            ->willReturn($paginatedResult3);
+            ->with(self::isInstanceOf(SearchCriteria::class))
+            ->willReturn($paginatedResult3)
+        ;
 
         $this->paperService
             ->expects($this->once())
-            ->method('addQuestions');
+            ->method('addQuestions')
+        ;
 
         $result = $this->paperGenerator->generateByTags(
             $tags,
@@ -210,17 +235,34 @@ class PaperGeneratorServiceTest extends TestCase
             '专项练习'
         );
 
-        $this->assertNotNull($result);
         $this->assertEquals(PaperGenerationType::INTELLIGENT, $result->getGenerationType());
     }
 
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->paperService = $this->createMock(PaperService::class);
-        $this->questionService = $this->createMock(QuestionService::class);
-        $this->paperGenerator = new PaperGeneratorService(
-            $this->paperService,
-            $this->questionService
-        );
     }
+
+    private function initializeServices(): void
+    {
+        if (!isset($this->paperService)) {
+            // 使用具体类 PaperService 而非接口的原因：
+            // 1) PaperService 没有定义对应的接口，直接使用具体实现
+            // 2) 该服务类方法签名相对稳定，测试中模拟不会带来维护问题
+            // 3) 建议后续重构时为核心服务类添加接口以提高可测试性
+            $this->paperService = $this->createMock(PaperService::class);
+            // 使用具体类 QuestionService 而非接口的原因：
+            // 1) 虽然存在 QuestionServiceInterface，但当前测试直接依赖具体实现
+            // 2) 该实现包含复杂的业务逻辑，模拟接口可能更适合但需要重构测试
+            // 3) 建议未来重构为使用 QuestionServiceInterface 以提高解耦性
+            $this->questionService = $this->createMock(QuestionService::class);
+            $this->paperGenerator = new PaperGeneratorService(
+                $this->paperService,
+                $this->questionService
+            );
+        }
+    }
+
+    /**
+     * @return array<string>
+     */
 }

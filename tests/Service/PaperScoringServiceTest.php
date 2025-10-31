@@ -2,6 +2,8 @@
 
 namespace Tourze\TestPaperBundle\Tests\Service;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Tourze\QuestionBankBundle\Entity\Question;
 use Tourze\QuestionBankBundle\Enum\QuestionType;
@@ -11,13 +13,23 @@ use Tourze\TestPaperBundle\Entity\TestSession;
 use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 use Tourze\TestPaperBundle\Service\PaperScoringService;
 
-class PaperScoringServiceTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(PaperScoringService::class)]
+final class PaperScoringServiceTest extends TestCase
 {
-    private PaperQuestionRepository $paperQuestionRepository;
+    private PaperQuestionRepository&MockObject $paperQuestionRepository;
+
     private PaperScoringService $scoringService;
+
+    protected function onSetUp(): void
+    {
+    }
 
     public function testCalculateScore(): void
     {
+        $this->initializeServices();
         $paper = new TestPaper();
         $paper->setTitle('测试试卷');
 
@@ -40,7 +52,8 @@ class PaperScoringServiceTest extends TestCase
             ->expects($this->once())
             ->method('findByPaperWithQuestions')
             ->with($paper)
-            ->willReturn($questions);
+            ->willReturn($questions)
+        ;
 
         $score = $this->scoringService->calculateScore($session);
 
@@ -48,15 +61,20 @@ class PaperScoringServiceTest extends TestCase
         $this->assertEquals(18, $score);
     }
 
+    /**
+     * @param mixed $correctAnswer
+     */
     private function createPaperQuestion(string $uuid, QuestionType $type, $correctAnswer, int $score): PaperQuestion
     {
+        // 使用具体类 Question 而非接口的原因：
+        // 1) Question 是 Doctrine Entity，主要用于数据持久化，不设计接口
+        // 2) Entity 类包含 ORM 映射和数据访问方法，接口化会失去这些特性
+        // 3) 在测试中模拟 Entity 是常见做法，用于测试业务逻辑而非数据层
         $question = $this->createMock(Question::class);
-        $mockId = $this->createMock(\Symfony\Component\Uid\Uuid::class);
-        $mockId->method('__toString')->willReturn($uuid);
-        $question->method('getId')->willReturn($mockId);
+        $question->method('getId')->willReturn($uuid);
         $question->method('getType')->willReturn($type);
         $question->method('retrieveApiArray')->willReturn([
-            'correctLetters' => $correctAnswer
+            'correctLetters' => $correctAnswer,
         ]);
 
         $paperQuestion = new PaperQuestion();
@@ -68,6 +86,7 @@ class PaperScoringServiceTest extends TestCase
 
     public function testGetDetailedResults(): void
     {
+        $this->initializeServices();
         $paper = new TestPaper();
         $paper->setTitle('测试试卷');
 
@@ -88,7 +107,8 @@ class PaperScoringServiceTest extends TestCase
             ->expects($this->once())
             ->method('findByPaperWithQuestions')
             ->with($paper)
-            ->willReturn($questions);
+            ->willReturn($questions)
+        ;
 
         $results = $this->scoringService->getDetailedResults($session);
 
@@ -108,6 +128,7 @@ class PaperScoringServiceTest extends TestCase
 
     public function testGetScoreByType(): void
     {
+        $this->initializeServices();
         $paper = new TestPaper();
         $paper->setTitle('测试试卷');
 
@@ -129,7 +150,8 @@ class PaperScoringServiceTest extends TestCase
             ->expects($this->once())
             ->method('findByPaperWithQuestions')
             ->with($paper)
-            ->willReturn($questions);
+            ->willReturn($questions)
+        ;
 
         $typeStats = $this->scoringService->getScoreByType($session);
 
@@ -155,11 +177,21 @@ class PaperScoringServiceTest extends TestCase
         $this->assertEquals(100, $multipleChoice['correctRate']);
     }
 
-    protected function setUp(): void
+    private function initializeServices(): void
     {
-        $this->paperQuestionRepository = $this->createMock(PaperQuestionRepository::class);
-        $this->scoringService = new PaperScoringService(
-            $this->paperQuestionRepository
-        );
+        if (!isset($this->scoringService)) {
+            // 使用具体类 PaperQuestionRepository 而非接口的原因：
+            // 1) PaperQuestionRepository 继承自 Doctrine ServiceEntityRepository，没有接口设计
+            // 2) Repository 类主要负责数据访问，直接模拟具体实现更符合测试目的
+            // 3) Doctrine Repository 模式下，一般不为 Repository 设计接口，直接使用具体类
+            $this->paperQuestionRepository = $this->createMock(PaperQuestionRepository::class);
+            $this->scoringService = new PaperScoringService(
+                $this->paperQuestionRepository
+            );
+        }
     }
+
+    /**
+     * @return array<string>
+     */
 }

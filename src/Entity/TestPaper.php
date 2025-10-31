@@ -6,6 +6,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
@@ -14,6 +15,9 @@ use Tourze\TestPaperBundle\Enum\PaperGenerationType;
 use Tourze\TestPaperBundle\Enum\PaperStatus;
 use Tourze\TestPaperBundle\Repository\TestPaperRepository;
 
+/**
+ * @implements ApiArrayInterface<string, mixed>
+ */
 #[ORM\Entity(repositoryClass: TestPaperRepository::class)]
 #[ORM\Table(name: 'test_paper', options: ['comment' => '试卷'])]
 class TestPaper implements \Stringable, ApiArrayInterface
@@ -23,48 +27,72 @@ class TestPaper implements \Stringable, ApiArrayInterface
     use SnowflakeKeyAware;
 
     #[ORM\Column(length: 120, unique: true, options: ['comment' => '试卷标题'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 120)]
     private string $title;
 
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '试卷描述'])]
+    #[Assert\Length(max: 65535)]
     private ?string $description = null;
 
     #[ORM\Column(type: Types::STRING, enumType: PaperStatus::class, options: ['comment' => '试卷状态'])]
+    #[Assert\NotNull]
+    #[Assert\Choice(callback: [PaperStatus::class, 'cases'])]
     private PaperStatus $status = PaperStatus::DRAFT;
 
     #[ORM\Column(type: Types::STRING, enumType: PaperGenerationType::class, options: ['comment' => '组卷方式'])]
+    #[Assert\NotNull]
+    #[Assert\Choice(callback: [PaperGenerationType::class, 'cases'])]
     private PaperGenerationType $generationType = PaperGenerationType::MANUAL;
 
     #[ORM\Column(options: ['comment' => '总分'])]
+    #[Assert\PositiveOrZero]
     private int $totalScore = 100;
 
     #[ORM\Column(options: ['comment' => '及格分数'])]
+    #[Assert\PositiveOrZero]
     private int $passScore = 60;
 
     #[ORM\Column(nullable: true, options: ['comment' => '考试时长（秒）'])]
+    #[Assert\PositiveOrZero]
     private ?int $timeLimit = null;
 
     #[ORM\Column(options: ['comment' => '题目总数'])]
+    #[Assert\PositiveOrZero]
     private int $questionCount = 0;
 
+    /**
+     * @var Collection<int, PaperQuestion>
+     */
     #[ORM\OneToMany(mappedBy: 'paper', targetEntity: PaperQuestion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $paperQuestions;
 
+    /**
+     * @var Collection<int, PaperTemplate>
+     */
     #[ORM\OneToMany(mappedBy: 'paper', targetEntity: PaperTemplate::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $templates;
 
+    /**
+     * @var Collection<int, TestSession>
+     */
     #[ORM\OneToMany(mappedBy: 'paper', targetEntity: TestSession::class, orphanRemoval: true)]
     private Collection $sessions;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否随机排序题目', 'default' => false])]
+    #[Assert\Type(type: 'bool')]
     private bool $randomizeQuestions = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否随机排序选项', 'default' => false])]
+    #[Assert\Type(type: 'bool')]
     private bool $randomizeOptions = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否允许重做', 'default' => true])]
+    #[Assert\Type(type: 'bool')]
     private bool $allowRetake = true;
 
     #[ORM\Column(nullable: true, options: ['comment' => '最大重做次数'])]
+    #[Assert\PositiveOrZero]
     private ?int $maxAttempts = null;
 
     public function __construct()
@@ -76,23 +104,21 @@ class TestPaper implements \Stringable, ApiArrayInterface
 
     public function __toString(): string
     {
-        if ($this->getId() === null) {
+        if (null === $this->getId()) {
             return '';
         }
 
         return "#{$this->getId()} {$this->getTitle()}";
     }
 
-
     public function getTitle(): string
     {
         return $this->title;
     }
 
-    public function setTitle(string $title): static
+    public function setTitle(string $title): void
     {
         $this->title = $title;
-        return $this;
     }
 
     /**
@@ -103,20 +129,17 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->paperQuestions;
     }
 
-    public function addPaperQuestion(PaperQuestion $paperQuestion): static
+    public function addPaperQuestion(PaperQuestion $paperQuestion): void
     {
         if (!$this->paperQuestions->contains($paperQuestion)) {
             $this->paperQuestions->add($paperQuestion);
             $paperQuestion->setPaper($this);
         }
-
-        return $this;
     }
 
-    public function removePaperQuestion(PaperQuestion $paperQuestion): static
+    public function removePaperQuestion(PaperQuestion $paperQuestion): void
     {
         $this->paperQuestions->removeElement($paperQuestion);
-        return $this;
     }
 
     /**
@@ -127,25 +150,21 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->templates;
     }
 
-    public function addTemplate(PaperTemplate $template): static
+    public function addTemplate(PaperTemplate $template): void
     {
         if (!$this->templates->contains($template)) {
             $this->templates->add($template);
             $template->setPaper($this);
         }
-
-        return $this;
     }
 
-    public function removeTemplate(PaperTemplate $template): static
+    public function removeTemplate(PaperTemplate $template): void
     {
         if ($this->templates->removeElement($template)) {
             if ($template->getPaper() === $this) {
                 $template->setPaper(null);
             }
         }
-
-        return $this;
     }
 
     /**
@@ -156,27 +175,30 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->sessions;
     }
 
-    public function addSession(TestSession $session): static
+    public function addSession(TestSession $session): void
     {
         if (!$this->sessions->contains($session)) {
             $this->sessions->add($session);
             $session->setPaper($this);
         }
-
-        return $this;
     }
 
-    public function removeSession(TestSession $session): static
+    public function removeSession(TestSession $session): void
     {
         $this->sessions->removeElement($session);
-        return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function retrieveSecretArray(): array
     {
         return $this->retrieveApiArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function retrieveApiArray(): array
     {
         return [
@@ -203,10 +225,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->description;
     }
 
-    public function setDescription(?string $description): static
+    public function setDescription(?string $description): void
     {
         $this->description = $description;
-        return $this;
     }
 
     public function getStatus(): PaperStatus
@@ -214,10 +235,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->status;
     }
 
-    public function setStatus(PaperStatus $status): static
+    public function setStatus(PaperStatus $status): void
     {
         $this->status = $status;
-        return $this;
     }
 
     public function getGenerationType(): PaperGenerationType
@@ -225,10 +245,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->generationType;
     }
 
-    public function setGenerationType(PaperGenerationType $generationType): static
+    public function setGenerationType(PaperGenerationType $generationType): void
     {
         $this->generationType = $generationType;
-        return $this;
     }
 
     public function getTotalScore(): int
@@ -236,10 +255,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->totalScore;
     }
 
-    public function setTotalScore(int $totalScore): static
+    public function setTotalScore(int $totalScore): void
     {
         $this->totalScore = $totalScore;
-        return $this;
     }
 
     public function getPassScore(): int
@@ -247,10 +265,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->passScore;
     }
 
-    public function setPassScore(int $passScore): static
+    public function setPassScore(int $passScore): void
     {
         $this->passScore = $passScore;
-        return $this;
     }
 
     public function getTimeLimit(): ?int
@@ -258,10 +275,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->timeLimit;
     }
 
-    public function setTimeLimit(?int $timeLimit): static
+    public function setTimeLimit(?int $timeLimit): void
     {
         $this->timeLimit = $timeLimit;
-        return $this;
     }
 
     public function getQuestionCount(): int
@@ -269,10 +285,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->questionCount;
     }
 
-    public function setQuestionCount(int $questionCount): static
+    public function setQuestionCount(int $questionCount): void
     {
         $this->questionCount = $questionCount;
-        return $this;
     }
 
     public function isRandomizeQuestions(): bool
@@ -280,10 +295,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->randomizeQuestions;
     }
 
-    public function setRandomizeQuestions(bool $randomizeQuestions): static
+    public function setRandomizeQuestions(bool $randomizeQuestions): void
     {
         $this->randomizeQuestions = $randomizeQuestions;
-        return $this;
     }
 
     public function isRandomizeOptions(): bool
@@ -291,10 +305,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->randomizeOptions;
     }
 
-    public function setRandomizeOptions(bool $randomizeOptions): static
+    public function setRandomizeOptions(bool $randomizeOptions): void
     {
         $this->randomizeOptions = $randomizeOptions;
-        return $this;
     }
 
     public function isAllowRetake(): bool
@@ -302,10 +315,9 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->allowRetake;
     }
 
-    public function setAllowRetake(bool $allowRetake): static
+    public function setAllowRetake(bool $allowRetake): void
     {
         $this->allowRetake = $allowRetake;
-        return $this;
     }
 
     public function getMaxAttempts(): ?int
@@ -313,8 +325,8 @@ class TestPaper implements \Stringable, ApiArrayInterface
         return $this->maxAttempts;
     }
 
-    public function setMaxAttempts(?int $maxAttempts): static
+    public function setMaxAttempts(?int $maxAttempts): void
     {
         $this->maxAttempts = $maxAttempts;
-        return $this;
-    }}
+    }
+}

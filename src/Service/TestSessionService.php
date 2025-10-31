@@ -3,6 +3,7 @@
 namespace Tourze\TestPaperBundle\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Tourze\TestPaperBundle\Entity\TestPaper;
 use Tourze\TestPaperBundle\Entity\TestSession;
@@ -10,18 +11,19 @@ use Tourze\TestPaperBundle\Enum\SessionStatus;
 use Tourze\TestPaperBundle\Exception\SessionException;
 use Tourze\TestPaperBundle\Repository\TestSessionRepository;
 
+#[Autoconfigure(public: true)]
 class TestSessionService
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly TestSessionRepository $sessionRepository,
-        private readonly PaperScoringService $scoringService
+        private readonly PaperScoringService $scoringService,
     ) {
     }
 
     public function startSession(TestSession $session): TestSession
     {
-        if ($session->getStatus() !== SessionStatus::PENDING) {
+        if (SessionStatus::PENDING !== $session->getStatus()) {
             throw new SessionException('会话状态不正确，无法开始');
         }
 
@@ -29,7 +31,7 @@ class TestSessionService
         $session->setStartTime(new \DateTimeImmutable());
 
         // 设置到期时间
-        if ($session->getPaper()->getTimeLimit() !== null) {
+        if (null !== $session->getPaper()->getTimeLimit()) {
             $expiresAt = (new \DateTimeImmutable())->add(new \DateInterval('PT' . $session->getPaper()->getTimeLimit() . 'S'));
             $session->setExpiresAt($expiresAt);
         }
@@ -39,9 +41,9 @@ class TestSessionService
         return $session;
     }
 
-    public function submitAnswer(TestSession $session, string $questionId, $answer): TestSession
+    public function submitAnswer(TestSession $session, string $questionId, mixed $answer): TestSession
     {
-        if ($session->getStatus() !== SessionStatus::IN_PROGRESS) {
+        if (SessionStatus::IN_PROGRESS !== $session->getStatus()) {
             throw new SessionException('会话状态不正确，无法提交答案');
         }
 
@@ -61,7 +63,7 @@ class TestSessionService
 
     public function expireSession(TestSession $session): TestSession
     {
-        if ($session->getStatus() !== SessionStatus::IN_PROGRESS) {
+        if (SessionStatus::IN_PROGRESS !== $session->getStatus()) {
             return $session;
         }
 
@@ -69,7 +71,7 @@ class TestSessionService
         $session->setEndTime(new \DateTimeImmutable());
 
         // 如果有答案，计算分数
-        if ($session->getAnswers() !== null) {
+        if (null !== $session->getAnswers()) {
             $score = $this->scoringService->calculateScore($session);
             $session->setScore($score);
 
@@ -84,7 +86,7 @@ class TestSessionService
 
     public function completeSession(TestSession $session): TestSession
     {
-        if ($session->getStatus() !== SessionStatus::IN_PROGRESS) {
+        if (SessionStatus::IN_PROGRESS !== $session->getStatus()) {
             throw new SessionException('会话状态不正确，无法完成');
         }
 
@@ -92,7 +94,7 @@ class TestSessionService
         $session->setEndTime(new \DateTimeImmutable());
 
         // 计算用时
-        if ($session->getStartTime() !== null) {
+        if (null !== $session->getStartTime() && null !== $session->getEndTime()) {
             $duration = $session->getEndTime()->getTimestamp() - $session->getStartTime()->getTimestamp();
             $session->setDuration($duration);
         }
@@ -117,12 +119,15 @@ class TestSessionService
 
         foreach ($expiredSessions as $session) {
             $this->expireSession($session);
-            $count++;
+            ++$count;
         }
 
         return $count;
     }
 
+    /**
+     * @return array{totalQuestions: int, answeredQuestions: int, unansweredQuestions: int, progressPercentage: float, timeRemaining: int|null, isExpired: bool}
+     */
     public function getSessionProgress(TestSession $session): array
     {
         $paper = $session->getPaper();
@@ -142,9 +147,12 @@ class TestSessionService
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getSessionStatistics(TestSession $session): array
     {
-        if ($session->getStatus() !== SessionStatus::COMPLETED) {
+        if (SessionStatus::COMPLETED !== $session->getStatus()) {
             return [];
         }
 
@@ -176,15 +184,21 @@ class TestSessionService
         return $statistics;
     }
 
+    /**
+     * @return array<TestSession>
+     */
     public function getUserHistory(UserInterface $user, ?TestPaper $paper = null): array
     {
-        if ($paper !== null) {
+        if (null !== $paper) {
             return $this->sessionRepository->findBy(['user' => $user, 'paper' => $paper]);
         }
 
         return $this->sessionRepository->findByUser($user);
     }
 
+    /**
+     * @return array<array{paper: TestPaper, session: TestSession, score: int, percentage: float, passed: bool}>
+     */
     public function getBestScores(UserInterface $user): array
     {
         $sessions = $this->sessionRepository->findByUser($user, SessionStatus::COMPLETED);
@@ -193,12 +207,13 @@ class TestSessionService
         foreach ($sessions as $session) {
             $paperId = $session->getPaper()->getId();
 
-            if (!isset($bestScores[$paperId]) || $session->getScore() > $bestScores[$paperId]['score']) {
+            $sessionScore = $session->getScore() ?? 0;
+            if (!isset($bestScores[$paperId]) || $sessionScore > $bestScores[$paperId]['score']) {
                 $bestScores[$paperId] = [
                     'paper' => $session->getPaper(),
                     'session' => $session,
-                    'score' => $session->getScore(),
-                    'percentage' => $session->getScorePercentage(),
+                    'score' => $sessionScore,
+                    'percentage' => $session->getScorePercentage() ?? 0.0,
                     'passed' => $session->isPassed(),
                 ];
             }
@@ -215,7 +230,7 @@ class TestSessionService
 
         // 取消当前活跃的会话
         $activeSession = $this->sessionRepository->findActiveSession($user, $paper);
-        if ($activeSession !== null) {
+        if (null !== $activeSession) {
             $this->cancelSession($activeSession);
         }
 
@@ -243,16 +258,16 @@ class TestSessionService
             $existingSession = $this->sessionRepository->findOneBy([
                 'paper' => $paper,
                 'user' => $user,
-                'status' => SessionStatus::COMPLETED
+                'status' => SessionStatus::COMPLETED,
             ]);
 
-            if ($existingSession !== null) {
+            if (null !== $existingSession) {
                 throw new SessionException('该试卷不允许重做');
             }
         }
 
         // 检查最大尝试次数
-        if ($paper->getMaxAttempts() !== null) {
+        if (null !== $paper->getMaxAttempts()) {
             $attemptCount = $this->sessionRepository->getUserAttemptCount($user, $paper);
             if ($attemptCount >= $paper->getMaxAttempts()) {
                 throw new SessionException('已达到最大尝试次数');
@@ -261,7 +276,7 @@ class TestSessionService
 
         // 检查是否有进行中的会话
         $activeSession = $this->sessionRepository->findActiveSession($user, $paper);
-        if ($activeSession !== null) {
+        if (null !== $activeSession) {
             return $activeSession;
         }
 

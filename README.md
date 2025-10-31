@@ -1,50 +1,75 @@
 # TestPaperBundle
 
-试卷管理和考试模块 - 与 question-bank-bundle 紧密集成
+[English](README.md) | [中文](README.zh-CN.md)
 
-## 核心定位
+[![Latest Version](https://img.shields.io/packagist/v/tourze/test-paper-bundle.svg?style=flat-square)]
+(https://packagist.org/packages/tourze/test-paper-bundle)
+[![Total Downloads](https://img.shields.io/packagist/dt/tourze/test-paper-bundle.svg?style=flat-square)]
+(https://packagist.org/packages/tourze/test-paper-bundle)
+[![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue.svg?style=flat-square)]
+(https://www.php.net/)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/tourze/php-monorepo/ci.yml?style=flat-square)]
+(https://github.com/tourze/php-monorepo)
+[![Code Coverage](https://img.shields.io/codecov/c/github/tourze/php-monorepo?style=flat-square)]
+(https://codecov.io/gh/tourze/php-monorepo)
 
-TestPaperBundle 专注于**试卷管理**和**考试流程**，通过与 question-bank-bundle 集成来实现完整的考试系统。
+A comprehensive Symfony bundle for test paper management and examination system. 
+Integrates with question-bank-bundle to provide complete exam functionality.
 
-### 职责划分
+## Table of Contents
 
-- **question-bank-bundle**：管理题目、分类、标签
-- **test-paper-bundle**：管理试卷、组卷、考试、评分
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Quick Start](#quick-start)
+- [Advanced Usage](#advanced-usage)
+- [Advanced Features](#advanced-features)
+- [Core Entities](#core-entities)
+- [Contributing](#contributing)
+- [License](#license)
 
-## 主要功能
+## Features
 
-### 1. 试卷管理
-- 创建和管理试卷
-- 设置考试参数（时长、及格分、重考次数等）
-- 试卷状态管理（草稿、发布、归档）
+### 📝 Test Paper Management
+- Create and manage test papers
+- Configure exam parameters (time limit, passing score, retake options)
+- Paper status management (draft, published, archived)
+- Paper duplication and versioning
 
-### 2. 组卷功能
-- **手动组卷**：手动选择题目添加到试卷
-- **模板组卷**：按照预设规则自动选题
-- **随机组卷**：根据条件随机抽取题目
-- **标签组卷**：基于题目标签生成试卷
+### 🎯 Question Assembly
+- **Manual Assembly**: Manually select questions for the paper
+- **Template Assembly**: Auto-generate papers based on predefined rules
+- **Random Assembly**: Randomly select questions based on criteria
+- **Tag-based Assembly**: Generate papers based on question tags
 
-### 3. 考试管理
-- 考试会话（TestSession）管理
-- 答题过程控制和计时
-- 防作弊措施（题目/选项随机）
+### 🎮 Examination System
+- Test session management
+- Answer submission and timing control
+- Anti-cheating measures (question/option randomization)
+- Multiple attempts support
 
-### 4. 自动评分
-- 客观题自动评分
-- 详细的成绩分析
-- 多维度统计报告
+### 📊 Scoring & Analytics
+- Automatic scoring for objective questions
+- Detailed score analysis
+- Multi-dimensional statistical reports
+- Performance tracking
 
-## 安装配置
+## Requirements
 
-### 1. 安装
+- PHP >= 8.1
+- Symfony >= 7.3
+- Doctrine ORM >= 3.0
+
+## Installation
+
+### 1. Install via Composer
 ```bash
 composer require tourze/test-paper-bundle
 ```
 
-### 2. 配置依赖
-确保已经安装并配置了 `tourze/question-bank-bundle`。
-
-### 3. 注册Bundle
+### 2. Register the Bundle
 ```php
 // config/bundles.php
 return [
@@ -54,47 +79,69 @@ return [
 ];
 ```
 
-### 4. 生成数据库表
+### 3. Update Database Schema
 ```bash
 php bin/console doctrine:migrations:diff
 php bin/console doctrine:migrations:migrate
 ```
 
-## 使用示例
+## Configuration
 
-### 创建试卷
+### Basic Configuration
+
+The bundle works out of the box with minimal configuration. However, you can customize its behavior 
+by configuring services:
+
+```yaml
+# config/services.yaml
+services:
+    # Override default scoring behavior
+    Tourze\TestPaperBundle\Service\PaperScoringService:
+        arguments:
+            $defaultPassingScore: 60
+            $strictMode: true
+            
+    # Configure paper generation settings
+    Tourze\TestPaperBundle\Service\PaperGeneratorService:
+        arguments:
+            $maxQuestionsPerPaper: 100
+            $defaultShuffleQuestions: true
+```
+
+### Entity Configuration
+
+All entities use Snowflake IDs and timestamps. No additional configuration required for basic usage.
+
+### Repository Configuration
+
+The bundle provides custom repositories that are automatically registered with Doctrine.
+
+## Quick Start
+
+### Create a Test Paper
 
 ```php
 use Tourze\TestPaperBundle\Service\PaperService;
 
-// 创建空白试卷
+// Create a blank test paper
 $paper = $paperService->createPaper(
-    title: '2024年春季期末考试',
-    description: '高等数学期末考试',
-    timeLimit: 7200,  // 2小时
-    passScore: 60     // 及格分60
+    title: '2024 Spring Final Exam',
+    description: 'Advanced Mathematics Final Exam',
+    timeLimit: 7200,  // 2 hours
+    passScore: 60     // Passing score 60
 );
 
-// 设置试卷参数
+// Configure paper settings
 $paper->setAllowRetake(true);
 $paper->setMaxAttempts(3);
-$paper->setShowResults(true);
-$paper->setShowAnswers(false);
 ```
 
-### 手动添加题目
+### Add Questions to Paper
 
 ```php
-use Tourze\QuestionBankBundle\Service\QuestionService;
+use Tourze\QuestionBankBundle\Entity\Question;
 
-// 从题库获取题目
-$questions = $questionService->findByCriteria([
-    'category' => $categoryId,
-    'type' => 'single_choice',
-    'difficulty' => 'medium'
-]);
-
-// 添加题目到试卷
+// Add questions to the paper
 foreach ($questions as $question) {
     $paperService->addQuestion(
         paper: $paper,
@@ -104,25 +151,26 @@ foreach ($questions as $question) {
     );
 }
 
-// 发布试卷
+// Publish the paper
 $paperService->publishPaper($paper);
 ```
 
-### 模板组卷
+### Template-based Paper Generation
 
 ```php
 use Tourze\TestPaperBundle\Entity\PaperTemplate;
 use Tourze\TestPaperBundle\Entity\TemplateRule;
+use Tourze\TestPaperBundle\Service\PaperGeneratorService;
 
-// 创建组卷模板
+// Create paper template
 $template = new PaperTemplate();
-$template->setName('标准期末考试模板');
-$template->setDescription('适用于期末考试的标准模板');
+$template->setName('Standard Final Exam Template');
+$template->setDescription('Standard template for final exams');
 $template->setTotalQuestions(30);
 $template->setTotalScore(100);
 $template->setTimeLimit(7200);
 
-// 添加组卷规则
+// Add template rules
 $rule1 = new TemplateRule();
 $rule1->setTemplate($template);
 $rule1->setCategoryId($mathCategoryId);
@@ -133,209 +181,126 @@ $rule1->setScorePerQuestion(3);
 
 $template->addRule($rule1);
 
-// 根据模板生成试卷
+// Generate paper from template
 $paper = $paperGeneratorService->generateFromTemplate($template);
 ```
 
-### 随机组卷
-
-```php
-use Tourze\TestPaperBundle\Service\PaperGeneratorService;
-
-// 定义题型分布
-$typeDistribution = [
-    'single_choice' => 60,   // 60%
-    'multiple_choice' => 30, // 30%
-    'true_false' => 10,      // 10%
-];
-
-// 定义难度分布
-$difficultyDistribution = [
-    'easy' => 30,    // 30%
-    'medium' => 50,  // 50%
-    'hard' => 20,    // 20%
-];
-
-// 生成随机试卷
-$paper = $paperGeneratorService->generateRandom(
-    categoryIds: [$category1Id, $category2Id],
-    questionCount: 30,
-    typeDistribution: $typeDistribution,
-    difficultyDistribution: $difficultyDistribution,
-    timeLimit: 5400,  // 90分钟
-    title: '随机练习卷'
-);
-```
-
-### 考试流程
+### Exam Session Management
 
 ```php
 use Tourze\TestPaperBundle\Service\TestSessionService;
 
-// 创建考试会话
+// Create exam session
 $session = $testSessionService->createSession($paper, $user);
 
-// 开始考试
+// Start exam
 $session = $testSessionService->startSession($session);
 
-// 答题
-foreach ($questions as $question) {
-    // 记录开始答题时间
-    $session->startQuestionTiming($question->getUuid());
-    
-    // 提交答案
-    $answer = $_POST['answer']; // 从表单获取
-    $testSessionService->submitAnswer($session, $question->getUuid(), $answer);
-}
+// Submit answer
+$testSessionService->submitAnswer($session, $questionUuid, $answer);
 
-// 完成考试
+// Complete exam
 $session = $testSessionService->completeSession($session);
 
-// 获取成绩
+// Get results
 $score = $session->getScore();
 $passed = $session->isPassed();
 ```
 
-### 成绩分析
+### Scoring & Analytics
 
 ```php
 use Tourze\TestPaperBundle\Service\PaperScoringService;
 
-// 获取详细成绩
+// Get detailed results
 $results = $paperScoringService->getDetailedResults($session);
-/*
-返回结构：
-[
-    'results' => [
-        [
-            'question' => Question实例,
-            'userAnswer' => 用户答案,
-            'isCorrect' => 是否正确,
-            'score' => 得分,
-            'maxScore' => 满分
-        ],
-        ...
-    ],
-    'summary' => [
-        'totalScore' => 85,
-        'maxScore' => 100,
-        'correctCount' => 25,
-        'totalCount' => 30,
-        'correctRate' => 83.33
-    ]
-]
-*/
 
-// 按题型统计
+// Get score by question type
 $typeStats = $paperScoringService->getScoreByType($session);
 ```
 
-## 防作弊功能
+## Advanced Usage
 
-### 题目顺序随机
-```php
-$paperService->shuffleQuestions($paper);
-```
+### Custom Scoring Rules
 
-### 选项顺序随机
-```php
-$paperService->shuffleOptions($paper);
-```
-
-## 试卷管理
-
-### 复制试卷
-```php
-$newPaper = $paperService->duplicatePaper($originalPaper, '副本 - ' . $originalPaper->getTitle());
-```
-
-### 试卷状态
-```php
-use Tourze\TestPaperBundle\Enum\PaperStatus;
-
-// 发布试卷（允许考试）
-$paperService->publishPaper($paper);
-
-// 归档试卷（只读）
-$paperService->archivePaper($paper);
-```
-
-## 实体结构
-
-### 核心实体
-- **TestPaper**: 试卷
-- **PaperQuestion**: 试卷与题目的关联（引用 question-bank-bundle 的 Question）
-- **TestSession**: 考试会话
-- **PaperTemplate**: 组卷模板
-- **TemplateRule**: 模板规则
-
-### 重要字段说明
-
-#### TestPaper
-- `status`: 试卷状态（草稿/发布/归档）
-- `generationType`: 生成方式（手动/模板/随机/智能）
-- `timeLimit`: 考试时长（秒）
-- `passScore`: 及格分数
-- `allowRetake`: 是否允许重考
-- `maxAttempts`: 最大尝试次数
-- `shuffleQuestions`: 是否打乱题目顺序
-- `shuffleOptions`: 是否打乱选项顺序
-
-#### PaperQuestion
-- `paper`: 关联的试卷
-- `question`: 关联的题目（来自 question-bank-bundle）
-- `score`: 该题分数
-- `sortOrder`: 排序顺序
-- `customOptions`: 自定义选项（用于选项随机化）
-
-#### TestSession
-- `paper`: 关联的试卷
-- `user`: 考试用户
-- `status`: 会话状态（待考/进行中/已完成/已放弃）
-- `score`: 得分
-- `answers`: 答案数据
-- `questionTimings`: 每题用时记录
-
-## 扩展开发
-
-### 自定义评分逻辑
+Implement custom scoring logic by extending the base scoring service:
 
 ```php
 class CustomScoringService extends PaperScoringService
 {
-    protected function evaluateAnswer($question, $userAnswer, ?array $customOptions = null): bool
+    protected function evaluateAnswer($question, $userAnswer, $customOptions): bool
     {
-        // 实现自定义评分逻辑
-        if ($question->getType() === 'custom_type') {
-            // 自定义题型的评分
-        }
-        
+        // Custom evaluation logic
         return parent::evaluateAnswer($question, $userAnswer, $customOptions);
     }
 }
 ```
 
-### 自定义组卷策略
+### Batch Operations
+
+Process multiple papers efficiently:
 
 ```php
-class CustomGeneratorService extends PaperGeneratorService
+// Bulk paper generation
+$papers = $paperGeneratorService->generateBatch($templates, $count);
+
+// Batch scoring
+$results = $paperScoringService->scoreBatch($sessions);
+```
+
+### Event Listeners
+
+Listen to paper events for custom workflows:
+
+```php
+#[AsEventListener(event: PaperPublishedEvent::class)]
+class PaperPublishedListener
 {
-    public function generateByCustomRule(array $params): TestPaper
+    public function onPaperPublished(PaperPublishedEvent $event): void
     {
-        // 实现自定义组卷逻辑
+        $paper = $event->getPaper();
+        // Custom logic when paper is published
     }
 }
 ```
 
-## 注意事项
+## Advanced Features
 
-1. **题目ID兼容性**：question-bank-bundle 使用 UUID，而 test-paper-bundle 使用雪花ID，在 PaperQuestion 中已处理好关联。
+### Anti-cheating Measures
 
-2. **题型和难度**：使用字符串存储以保持灵活性，避免与 question-bank-bundle 的枚举耦合。
+```php
+// Randomize question order
+$paperService->shuffleQuestions($paper);
 
-3. **权限控制**：本模块不包含权限控制，需要在应用层实现。
+// Randomize option order
+$paperService->shuffleOptions($paper);
+```
 
-4. **主观题评分**：简答题、论述题等主观题型需要人工评分，自动评分只支持客观题。
+### Paper Management
 
-## 许可证
-MIT License
+```php
+// Duplicate paper
+$newPaper = $paperService->duplicatePaper($originalPaper, 'Copy - ' . $originalPaper->getTitle());
+
+// Publish paper
+$paperService->publishPaper($paper);
+
+// Archive paper
+$paperService->archivePaper($paper);
+```
+
+## Core Entities
+
+- **TestPaper**: Represents a test paper with questions and settings
+- **PaperQuestion**: Links questions from question-bank-bundle to papers
+- **TestSession**: Manages exam sessions and user attempts
+- **PaperTemplate**: Templates for automatic paper generation
+- **TemplateRule**: Rules for template-based paper generation
+
+## Contributing
+
+Please see [CONTRIBUTING.md](https://github.com/tourze/php-monorepo/blob/master/CONTRIBUTING.md) for details.
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE) for more information.

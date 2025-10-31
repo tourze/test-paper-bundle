@@ -8,3 +8,6 @@ services:
     resource: '../../Repository/'
   Tourze\TestPaperBundle\Service\:
     resource: '../../Service/'
+  Tourze\TestPaperBundle\Controller\:
+    resource: '../../Controller/'
+    tags: [ 'controller.service_arguments' ]

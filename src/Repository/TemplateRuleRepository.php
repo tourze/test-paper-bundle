@@ -4,12 +4,14 @@ namespace Tourze\TestPaperBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Tourze\PHPUnitSymfonyKernelTest\Attribute\AsRepository;
 use Tourze\TestPaperBundle\Entity\PaperTemplate;
 use Tourze\TestPaperBundle\Entity\TemplateRule;
 
 /**
  * @extends ServiceEntityRepository<TemplateRule>
  */
+#[AsRepository(entityClass: TemplateRule::class)]
 class TemplateRuleRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,14 +19,20 @@ class TemplateRuleRepository extends ServiceEntityRepository
         parent::__construct($registry, TemplateRule::class);
     }
 
+    /**
+     * @return TemplateRule[]
+     * @phpstan-return array<TemplateRule>
+     */
     public function findByTemplate(PaperTemplate $template): array
     {
+        /** @var TemplateRule[] */
         return $this->createQueryBuilder('tr')
             ->andWhere('tr.template = :template')
             ->setParameter('template', $template)
             ->orderBy('tr.sort', 'ASC')
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
     }
 
     public function getTotalQuestions(PaperTemplate $template): int
@@ -34,7 +42,8 @@ class TemplateRuleRepository extends ServiceEntityRepository
             ->andWhere('tr.template = :template')
             ->setParameter('template', $template)
             ->getQuery()
-            ->getSingleScalarResult();
+            ->getSingleScalarResult()
+        ;
 
         return (int) ($result ?? 0);
     }
@@ -46,11 +55,15 @@ class TemplateRuleRepository extends ServiceEntityRepository
             ->andWhere('tr.template = :template')
             ->setParameter('template', $template)
             ->getQuery()
-            ->getSingleScalarResult();
+            ->getSingleScalarResult()
+        ;
 
         return (int) ($result ?? 0);
     }
 
+    /**
+     * @param string[] $ruleIds
+     */
     public function reorderRules(PaperTemplate $template, array $ruleIds): void
     {
         foreach ($ruleIds as $index => $ruleId) {
@@ -63,12 +76,17 @@ class TemplateRuleRepository extends ServiceEntityRepository
                 ->setParameter('template', $template)
                 ->setParameter('ruleId', $ruleId)
                 ->getQuery()
-                ->execute();
+                ->execute()
+            ;
         }
     }
 
+    /**
+     * @return array<string, array{count: int, totalScore: int}>
+     */
     public function getStatisticsByType(PaperTemplate $template): array
     {
+        /** @var array<array{questionType: mixed, count: mixed, totalScore: mixed}> $result */
         $result = $this->createQueryBuilder('tr')
             ->select('tr.questionType, SUM(tr.questionCount) as count, SUM(tr.questionCount * tr.scorePerQuestion) as totalScore')
             ->andWhere('tr.template = :template')
@@ -76,21 +94,32 @@ class TemplateRuleRepository extends ServiceEntityRepository
             ->setParameter('template', $template)
             ->groupBy('tr.questionType')
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
 
         $statistics = [];
         foreach ($result as $row) {
-            $statistics[$row['questionType']] = [
-                'count' => (int) $row['count'],
-                'totalScore' => (int) $row['totalScore'],
+            $questionTypeValue = $row['questionType'] ?? '';
+            /** @var string $questionType */
+            $questionType = is_string($questionTypeValue) ? $questionTypeValue : (string) $questionTypeValue; // @phpstan-ignore cast.string
+            $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
+            $totalScore = is_numeric($row['totalScore'] ?? 0) ? (int) ($row['totalScore'] ?? 0) : 0;
+
+            $statistics[$questionType] = [
+                'count' => $count,
+                'totalScore' => $totalScore,
             ];
         }
 
         return $statistics;
     }
 
+    /**
+     * @return array<string, array{count: int, totalScore: int}>
+     */
     public function getStatisticsByDifficulty(PaperTemplate $template): array
     {
+        /** @var array<array{difficulty: mixed, count: mixed, totalScore: mixed}> $result */
         $result = $this->createQueryBuilder('tr')
             ->select('tr.difficulty, SUM(tr.questionCount) as count, SUM(tr.questionCount * tr.scorePerQuestion) as totalScore')
             ->andWhere('tr.template = :template')
@@ -98,21 +127,32 @@ class TemplateRuleRepository extends ServiceEntityRepository
             ->setParameter('template', $template)
             ->groupBy('tr.difficulty')
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
 
         $statistics = [];
         foreach ($result as $row) {
-            $statistics[$row['difficulty']] = [
-                'count' => (int) $row['count'],
-                'totalScore' => (int) $row['totalScore'],
+            $difficultyValue = $row['difficulty'] ?? '';
+            /** @var string $difficulty */
+            $difficulty = is_string($difficultyValue) ? $difficultyValue : (string) $difficultyValue; // @phpstan-ignore cast.string
+            $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
+            $totalScore = is_numeric($row['totalScore'] ?? 0) ? (int) ($row['totalScore'] ?? 0) : 0;
+
+            $statistics[$difficulty] = [
+                'count' => $count,
+                'totalScore' => $totalScore,
             ];
         }
 
         return $statistics;
     }
 
+    /**
+     * @return array<string, array{count: int, totalScore: int}>
+     */
     public function getStatisticsByKnowledgePoint(PaperTemplate $template): array
     {
+        /** @var array<array{name: mixed, count: mixed, totalScore: mixed}> $result */
         $result = $this->createQueryBuilder('tr')
             ->select('kp.name, SUM(tr.questionCount) as count, SUM(tr.questionCount * tr.scorePerQuestion) as totalScore')
             ->join('tr.knowledgePoint', 'kp')
@@ -121,16 +161,41 @@ class TemplateRuleRepository extends ServiceEntityRepository
             ->setParameter('template', $template)
             ->groupBy('kp.id')
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
 
         $statistics = [];
         foreach ($result as $row) {
-            $statistics[$row['name']] = [
-                'count' => (int) $row['count'],
-                'totalScore' => (int) $row['totalScore'],
+            $nameValue = $row['name'] ?? '';
+            /** @var string $name */
+            $name = is_string($nameValue) ? $nameValue : (string) $nameValue; // @phpstan-ignore cast.string
+            $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
+            $totalScore = is_numeric($row['totalScore'] ?? 0) ? (int) ($row['totalScore'] ?? 0) : 0;
+
+            $statistics[$name] = [
+                'count' => $count,
+                'totalScore' => $totalScore,
             ];
         }
 
         return $statistics;
+    }
+
+    public function save(TemplateRule $entity, bool $flush = true): void
+    {
+        static::getEntityManager()->persist($entity);
+
+        if ($flush) {
+            static::getEntityManager()->flush();
+        }
+    }
+
+    public function remove(TemplateRule $entity, bool $flush = true): void
+    {
+        static::getEntityManager()->remove($entity);
+
+        if ($flush) {
+            static::getEntityManager()->flush();
+        }
     }
 }

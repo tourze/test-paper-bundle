@@ -3,6 +3,8 @@
 namespace Tourze\TestPaperBundle\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+use Tourze\QuestionBankBundle\Entity\Option;
 use Tourze\QuestionBankBundle\Entity\Question;
 use Tourze\TestPaperBundle\Entity\PaperQuestion;
 use Tourze\TestPaperBundle\Entity\TestPaper;
@@ -14,11 +16,12 @@ use Tourze\TestPaperBundle\Repository\PaperQuestionRepository;
 /**
  * 试卷管理核心服务
  */
+#[Autoconfigure(public: true)]
 class PaperService
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly PaperQuestionRepository $paperQuestionRepository
+        private readonly PaperQuestionRepository $paperQuestionRepository,
     ) {
     }
 
@@ -29,7 +32,7 @@ class PaperService
         string $title,
         string $description = '',
         int $timeLimit = 3600,
-        int $passScore = 60
+        int $passScore = 60,
     ): TestPaper {
         $paper = new TestPaper();
         $paper->setTitle($title);
@@ -38,10 +41,10 @@ class PaperService
         $paper->setPassScore($passScore);
         $paper->setStatus(PaperStatus::DRAFT);
         $paper->setGenerationType(PaperGenerationType::MANUAL);
-        
+
         $this->entityManager->persist($paper);
         $this->entityManager->flush();
-        
+
         return $paper;
     }
 
@@ -52,30 +55,30 @@ class PaperService
         TestPaper $paper,
         Question $question,
         int $score,
-        int $sortOrder = 0
+        int $sortOrder = 0,
     ): PaperQuestion {
         // 检查题目是否已存在
         $existing = $this->paperQuestionRepository->findOneBy([
             'paper' => $paper,
-            'question' => $question
+            'question' => $question,
         ]);
-        
-        if ($existing !== null) {
+
+        if (null !== $existing) {
             throw new PaperException('题目已存在于试卷中');
         }
-        
+
         $paperQuestion = new PaperQuestion();
         $paperQuestion->setPaper($paper);
         $paperQuestion->setQuestion($question);
         $paperQuestion->setScore($score);
-        $paperQuestion->setSortOrder($sortOrder !== 0 ? $sortOrder : $this->getNextSortOrder($paper));
-        
+        $paperQuestion->setSortOrder(0 !== $sortOrder ? $sortOrder : $this->getNextSortOrder($paper));
+
         $paper->addPaperQuestion($paperQuestion);
         $this->updatePaperStatistics($paper);
-        
+
         $this->entityManager->persist($paperQuestion);
         $this->entityManager->flush();
-        
+
         return $paperQuestion;
     }
 
@@ -104,7 +107,7 @@ class PaperService
 
         foreach ($paper->getPaperQuestions() as $paperQuestion) {
             $totalScore += $paperQuestion->getScore();
-            $questionCount++;
+            ++$questionCount;
         }
 
         $paper->setTotalScore($totalScore);
@@ -113,18 +116,15 @@ class PaperService
 
     /**
      * 批量添加题目
+     * @param array<array{question: Question, score: int}> $questions
      */
     public function addQuestions(TestPaper $paper, array $questions): void
     {
         $sortOrder = $this->getNextSortOrder($paper);
 
         foreach ($questions as $questionData) {
-            $question = $questionData['question'] ?? null;
-            $score = $questionData['score'] ?? 5;
-
-            if (!$question instanceof Question) {
-                continue;
-            }
+            $question = $questionData['question'];
+            $score = $questionData['score'];
 
             $paperQuestion = new PaperQuestion();
             $paperQuestion->setPaper($paper);
@@ -164,7 +164,7 @@ class PaperService
     private function reorderQuestions(TestPaper $paper): void
     {
         $questions = $paper->getPaperQuestions()->toArray();
-        usort($questions, fn($a, $b) => $a->getSortOrder() <=> $b->getSortOrder());
+        usort($questions, fn ($a, $b) => $a->getSortOrder() <=> $b->getSortOrder());
 
         $sortOrder = 1;
         foreach ($questions as $paperQuestion) {
@@ -174,6 +174,7 @@ class PaperService
 
     /**
      * 更新题目顺序
+     * @param array<string, int> $orderMapping 题目ID到排序号的映射
      */
     public function updateQuestionOrder(TestPaper $paper, array $orderMapping): void
     {
@@ -210,52 +211,89 @@ class PaperService
     public function shuffleOptions(TestPaper $paper): void
     {
         foreach ($paper->getPaperQuestions() as $paperQuestion) {
-            $question = $paperQuestion->getQuestion();
-
-            // 只处理有选项的题型
-            if (!in_array($question->getType(), ['single_choice', 'multiple_choice'])) {
-                continue;
-            }
-
-            $options = $question->getOptions();
-            if ($options === null || $options->isEmpty()) {
-                continue;
-            }
-            
-            $optionsArray = $options->toArray();
-
-            // 保存原始答案索引
-            $correctAnswers = [];
-            $apiArray = $question->retrieveApiArray();
-            $correctLetters = $apiArray['correctLetters'] ?? [];
-            foreach ($correctLetters as $letter) {
-                if (isset($optionsArray[$letter])) {
-                    $correctAnswers[] = $optionsArray[$letter];
-                }
-            }
-
-            // 打乱选项
-            $shuffledOptions = $optionsArray;
-            shuffle($shuffledOptions);
-
-            // 更新正确答案索引
-            $newCorrectAnswers = [];
-            foreach ($correctAnswers as $correctAnswer) {
-                $newIndex = array_search($correctAnswer, $shuffledOptions);
-                if ($newIndex !== false) {
-                    $newCorrectAnswers[] = $newIndex;
-                }
-            }
-
-            // 保存自定义选项
-            $paperQuestion->setCustomOptions([
-                'options' => $shuffledOptions,
-                'correctAnswer' => $newCorrectAnswers
-            ]);
+            $this->shuffleQuestionOptions($paperQuestion);
         }
 
         $paper->setRandomizeOptions(true);
         $this->entityManager->flush();
+    }
+
+    private function shuffleQuestionOptions(PaperQuestion $paperQuestion): void
+    {
+        $question = $paperQuestion->getQuestion();
+
+        if (!$this->shouldShuffleOptions($question)) {
+            return;
+        }
+
+        $optionsArray = [];
+        foreach ($question->getOptions() as $key => $option) {
+            $optionsArray[strval($key)] = $option;
+        }
+        $correctAnswers = $this->extractCorrectAnswers($question, $optionsArray);
+
+        $shuffledOptions = $optionsArray;
+        shuffle($shuffledOptions);
+
+        $newCorrectAnswers = $this->updateCorrectAnswerIndexes($correctAnswers, $shuffledOptions);
+
+        $paperQuestion->setCustomOptions([
+            'options' => $shuffledOptions,
+            'correctAnswer' => $newCorrectAnswers,
+        ]);
+    }
+
+    private function shouldShuffleOptions(Question $question): bool
+    {
+        if (!in_array($question->getType()->value, ['single_choice', 'multiple_choice'], true)) {
+            return false;
+        }
+
+        $options = $question->getOptions();
+
+        return !$options->isEmpty();
+    }
+
+    /**
+     * @param array<int|string, Option> $optionsArray
+     * @return array<Option>
+     */
+    private function extractCorrectAnswers(Question $question, array $optionsArray): array
+    {
+        $correctAnswers = [];
+        $apiArray = $question->retrieveApiArray();
+        $correctLetters = $apiArray['correctLetters'] ?? [];
+
+        if (!is_array($correctLetters)) {
+            return $correctAnswers;
+        }
+
+        foreach ($correctLetters as $letter) {
+            if (is_string($letter) && isset($optionsArray[$letter])) {
+                $correctAnswers[] = $optionsArray[$letter];
+            }
+        }
+
+        return $correctAnswers;
+    }
+
+    /**
+     * @param array<Option> $correctAnswers
+     * @param list<Option> $shuffledOptions
+     * @return array<int>
+     */
+    private function updateCorrectAnswerIndexes(array $correctAnswers, array $shuffledOptions): array
+    {
+        $newCorrectAnswers = [];
+
+        foreach ($correctAnswers as $correctAnswer) {
+            $newIndex = array_search($correctAnswer, $shuffledOptions, true);
+            if (false !== $newIndex) {
+                $newCorrectAnswers[] = $newIndex;
+            }
+        }
+
+        return $newCorrectAnswers;
     }
 
     /**
@@ -263,11 +301,11 @@ class PaperService
      */
     public function publishPaper(TestPaper $paper): void
     {
-        if ($paper->getStatus() !== PaperStatus::DRAFT) {
+        if (PaperStatus::DRAFT !== $paper->getStatus()) {
             throw new PaperException('只有草稿状态的试卷可以发布');
         }
 
-        if ($paper->getQuestionCount() === 0) {
+        if ($paper->getQuestionCount() <= 0) {
             throw new PaperException('试卷中没有题目');
         }
 
@@ -280,7 +318,7 @@ class PaperService
      */
     public function archivePaper(TestPaper $paper): void
     {
-        if ($paper->getStatus() !== PaperStatus::PUBLISHED) {
+        if (PaperStatus::PUBLISHED !== $paper->getStatus()) {
             throw new PaperException('只有已发布的试卷可以归档');
         }
 

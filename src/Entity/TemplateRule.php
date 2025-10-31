@@ -4,12 +4,16 @@ namespace Tourze\TestPaperBundle\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\TestPaperBundle\Repository\TemplateRuleRepository;
 
+/**
+ * @implements ApiArrayInterface<string, mixed>
+ */
 #[ORM\Entity(repositoryClass: TemplateRuleRepository::class)]
 #[ORM\Table(name: 'test_template_rule', options: ['comment' => '模板规则'])]
 class TemplateRule implements \Stringable, ApiArrayInterface
@@ -18,55 +22,69 @@ class TemplateRule implements \Stringable, ApiArrayInterface
     use BlameableAware;
     use SnowflakeKeyAware;
 
-
-    #[ORM\ManyToOne(inversedBy: 'rules')]
+    #[ORM\ManyToOne(inversedBy: 'rules', cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
     private PaperTemplate $template;
 
     #[ORM\Column(nullable: true, options: ['comment' => '题目分类ID（来自question-bank-bundle）'])]
+    #[Assert\Length(max: 255)]
     private ?string $categoryId = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '题目类型'])]
+    #[Assert\Length(max: 255)]
     private ?string $questionType = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '难度等级'])]
+    #[Assert\Length(max: 255)]
     private ?string $difficulty = null;
 
     #[ORM\Column(options: ['comment' => '题目数量'])]
+    #[Assert\Range(min: 1)]
     private int $questionCount = 1;
 
     #[ORM\Column(options: ['comment' => '每题分数'])]
+    #[Assert\Range(min: 1)]
     private int $scorePerQuestion = 1;
 
     #[ORM\Column(options: ['comment' => '排序', 'default' => 0])]
+    #[Assert\Range(min: 0)]
     private int $sort = 0;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '标签过滤条件'])]
+    #[Assert\Type(type: 'array')]
     private ?array $tagFilters = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true, options: ['comment' => '最小正确率'])]
+    #[Assert\Range(min: 0, max: 100)]
+    #[Assert\Length(max: 6)]
     private ?string $minCorrectRate = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true, options: ['comment' => '最大正确率'])]
+    #[Assert\Range(min: 0, max: 100)]
+    #[Assert\Length(max: 6)]
     private ?string $maxCorrectRate = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '排除已使用题目', 'default' => false])]
+    #[Assert\Type(type: 'bool')]
     private bool $excludeUsed = false;
 
     public function __toString(): string
     {
-        if ($this->getId() === null) {
+        if (null === $this->getId()) {
             return '';
         }
 
         $parts = [];
-        if ($this->categoryId !== null) {
+        if (null !== $this->categoryId) {
             $parts[] = "分类:{$this->categoryId}";
         }
-        if ($this->questionType !== null) {
+        if (null !== $this->questionType) {
             $parts[] = $this->questionType;
         }
-        if ($this->difficulty !== null) {
+        if (null !== $this->difficulty) {
             $parts[] = $this->difficulty;
         }
         $parts[] = "{$this->questionCount}题";
@@ -74,24 +92,27 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return implode(' - ', $parts);
     }
 
-
-
     public function getTemplate(): PaperTemplate
     {
         return $this->template;
     }
 
-    public function setTemplate(PaperTemplate $template): static
+    public function setTemplate(PaperTemplate $template): void
     {
         $this->template = $template;
-        return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function retrieveSecretArray(): array
     {
         return $this->retrieveApiArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function retrieveApiArray(): array
     {
         return [
@@ -117,10 +138,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->categoryId;
     }
 
-    public function setCategoryId(?string $categoryId): static
+    public function setCategoryId(?string $categoryId): void
     {
         $this->categoryId = $categoryId;
-        return $this;
     }
 
     public function getQuestionType(): ?string
@@ -128,10 +148,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->questionType;
     }
 
-    public function setQuestionType(?string $questionType): static
+    public function setQuestionType(?string $questionType): void
     {
         $this->questionType = $questionType;
-        return $this;
     }
 
     public function getDifficulty(): ?string
@@ -139,10 +158,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->difficulty;
     }
 
-    public function setDifficulty(?string $difficulty): static
+    public function setDifficulty(?string $difficulty): void
     {
         $this->difficulty = $difficulty;
-        return $this;
     }
 
     public function getQuestionCount(): int
@@ -150,10 +168,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->questionCount;
     }
 
-    public function setQuestionCount(int $questionCount): static
+    public function setQuestionCount(int $questionCount): void
     {
         $this->questionCount = $questionCount;
-        return $this;
     }
 
     public function getScorePerQuestion(): int
@@ -161,10 +178,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->scorePerQuestion;
     }
 
-    public function setScorePerQuestion(int $scorePerQuestion): static
+    public function setScorePerQuestion(int $scorePerQuestion): void
     {
         $this->scorePerQuestion = $scorePerQuestion;
-        return $this;
     }
 
     public function getTotalScore(): int
@@ -177,21 +193,25 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->sort;
     }
 
-    public function setSort(int $sort): static
+    public function setSort(int $sort): void
     {
         $this->sort = $sort;
-        return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getTagFilters(): ?array
     {
         return $this->tagFilters;
     }
 
-    public function setTagFilters(?array $tagFilters): static
+    /**
+     * @param array<string, mixed>|null $tagFilters
+     */
+    public function setTagFilters(?array $tagFilters): void
     {
         $this->tagFilters = $tagFilters;
-        return $this;
     }
 
     public function getMinCorrectRate(): ?string
@@ -199,10 +219,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->minCorrectRate;
     }
 
-    public function setMinCorrectRate(?string $minCorrectRate): static
+    public function setMinCorrectRate(?string $minCorrectRate): void
     {
         $this->minCorrectRate = $minCorrectRate;
-        return $this;
     }
 
     public function getMaxCorrectRate(): ?string
@@ -210,10 +229,9 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->maxCorrectRate;
     }
 
-    public function setMaxCorrectRate(?string $maxCorrectRate): static
+    public function setMaxCorrectRate(?string $maxCorrectRate): void
     {
         $this->maxCorrectRate = $maxCorrectRate;
-        return $this;
     }
 
     public function isExcludeUsed(): bool
@@ -221,8 +239,8 @@ class TemplateRule implements \Stringable, ApiArrayInterface
         return $this->excludeUsed;
     }
 
-    public function setExcludeUsed(bool $excludeUsed): static
+    public function setExcludeUsed(bool $excludeUsed): void
     {
         $this->excludeUsed = $excludeUsed;
-        return $this;
-    }}
+    }
+}

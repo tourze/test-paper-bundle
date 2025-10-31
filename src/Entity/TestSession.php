@@ -5,6 +5,7 @@ namespace Tourze\TestPaperBundle\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\Arrayable\ApiArrayInterface;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
@@ -12,6 +13,9 @@ use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\TestPaperBundle\Enum\SessionStatus;
 use Tourze\TestPaperBundle\Repository\TestSessionRepository;
 
+/**
+ * @implements ApiArrayInterface<string, mixed>
+ */
 #[ORM\Entity(repositoryClass: TestSessionRepository::class)]
 #[ORM\Table(name: 'test_session', options: ['comment' => '考试会话'])]
 class TestSession implements \Stringable, ApiArrayInterface
@@ -20,86 +24,110 @@ class TestSession implements \Stringable, ApiArrayInterface
     use BlameableAware;
     use SnowflakeKeyAware;
 
-    #[ORM\ManyToOne(inversedBy: 'sessions')]
+    #[ORM\ManyToOne(inversedBy: 'sessions', cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
     private TestPaper $paper;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class, cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
     private UserInterface $user;
 
     #[ORM\Column(type: Types::STRING, enumType: SessionStatus::class, options: ['comment' => '会话状态'])]
+    #[Assert\NotNull]
+    #[Assert\Choice(callback: [SessionStatus::class, 'cases'])]
     private SessionStatus $status = SessionStatus::PENDING;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '开始时间'])]
+    #[Assert\Type(type: '\DateTimeInterface')]
     private ?\DateTimeInterface $startTime = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '结束时间'])]
+    #[Assert\Type(type: '\DateTimeInterface')]
     private ?\DateTimeInterface $endTime = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '到期时间'])]
+    #[Assert\Type(type: '\DateTimeInterface')]
     private ?\DateTimeInterface $expiresAt = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '得分'])]
+    #[Assert\PositiveOrZero]
     private ?int $score = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '总分'])]
+    #[Assert\PositiveOrZero]
     private ?int $totalScore = null;
 
     #[ORM\Column(options: ['comment' => '尝试次数', 'default' => 1])]
+    #[Assert\PositiveOrZero]
     private int $attemptNumber = 1;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '用户答案'])]
+    #[Assert\Type(type: 'array')]
     private ?array $answers = null;
 
     #[ORM\Column(nullable: true, options: ['comment' => '用时（秒）'])]
+    #[Assert\PositiveOrZero]
     private ?int $duration = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否通过', 'default' => false])]
+    #[Assert\Type(type: 'bool')]
     private bool $passed = false;
 
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '备注'])]
+    #[Assert\Length(max: 65535)]
     private ?string $remark = null;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '题目答题时间记录'])]
+    #[Assert\Type(type: 'array')]
     private ?array $questionTimings = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '当前题目开始时间'])]
+    #[Assert\Type(type: '\DateTimeInterface')]
     private ?\DateTimeInterface $currentQuestionStartTime = null;
 
-    #[ORM\Column(nullable: true, options: ['comment' => '当前题目ID'])]
+    #[ORM\Column(nullable: true, options: ['comment' => '当前题目 ID'])]
+    #[Assert\Length(max: 255)]
     private ?string $currentQuestionId = null;
 
     public function __toString(): string
     {
-        if ($this->getId() === null) {
+        if (null === $this->getId()) {
             return '';
         }
 
         return "#{$this->getId()} {$this->paper->getTitle()} - {$this->user->getUserIdentifier()}";
     }
 
-
     public function getUser(): UserInterface
     {
         return $this->user;
     }
 
-    public function setUser(UserInterface $user): static
+    public function setUser(UserInterface $user): void
     {
         $this->user = $user;
-        return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getQuestionTimings(): ?array
     {
         return $this->questionTimings;
     }
 
-    public function setQuestionTimings(?array $questionTimings): static
+    /**
+     * @param array<string, mixed>|null $questionTimings
+     */
+    public function setQuestionTimings(?array $questionTimings): void
     {
         $this->questionTimings = $questionTimings;
-        return $this;
     }
 
     public function getCurrentQuestionStartTime(): ?\DateTimeInterface
@@ -107,10 +135,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->currentQuestionStartTime;
     }
 
-    public function setCurrentQuestionStartTime(?\DateTimeInterface $currentQuestionStartTime): static
+    public function setCurrentQuestionStartTime(?\DateTimeInterface $currentQuestionStartTime): void
     {
         $this->currentQuestionStartTime = $currentQuestionStartTime;
-        return $this;
     }
 
     public function getCurrentQuestionId(): ?string
@@ -118,10 +145,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->currentQuestionId;
     }
 
-    public function setCurrentQuestionId(?string $currentQuestionId): static
+    public function setCurrentQuestionId(?string $currentQuestionId): void
     {
         $this->currentQuestionId = $currentQuestionId;
-        return $this;
     }
 
     public function startQuestionTiming(string $questionId): void
@@ -132,7 +158,7 @@ class TestSession implements \Stringable, ApiArrayInterface
 
     public function recordQuestionTiming(string $questionId): int
     {
-        if ($this->currentQuestionId !== $questionId || $this->currentQuestionStartTime === null) {
+        if ($this->currentQuestionId !== $questionId || null === $this->currentQuestionStartTime) {
             return 0;
         }
 
@@ -157,29 +183,43 @@ class TestSession implements \Stringable, ApiArrayInterface
     public function getQuestionDuration(string $questionId): ?int
     {
         $timings = $this->questionTimings ?? [];
-        return $timings[$questionId]['duration'] ?? null;
+
+        if (!isset($timings[$questionId]) || !is_array($timings[$questionId])) {
+            return null;
+        }
+
+        $questionData = $timings[$questionId];
+
+        return isset($questionData['duration']) && is_int($questionData['duration'])
+            ? $questionData['duration']
+            : null;
     }
 
     public function isCurrentQuestionExpired(int $timeLimit): bool
     {
-        if ($this->currentQuestionStartTime === null) {
+        if (null === $this->currentQuestionStartTime) {
             return false;
         }
 
         $elapsed = (new \DateTimeImmutable())->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
+
         return $elapsed > $timeLimit;
     }
 
     public function getCurrentQuestionRemainingTime(int $timeLimit): int
     {
-        if ($this->currentQuestionStartTime === null) {
+        if (null === $this->currentQuestionStartTime) {
             return $timeLimit;
         }
 
         $elapsed = (new \DateTimeImmutable())->getTimestamp() - $this->currentQuestionStartTime->getTimestamp();
+
         return max(0, $timeLimit - $elapsed);
     }
 
+    /**
+     * @param mixed $answer
+     */
     public function submitAnswer(string $questionId, $answer): void
     {
         $answers = $this->answers ?? [];
@@ -192,19 +232,29 @@ class TestSession implements \Stringable, ApiArrayInterface
         return isset($this->answers[$questionId]);
     }
 
+    /**
+     * @return mixed
+     */
     public function getAnswer(string $questionId)
     {
         return $this->answers[$questionId] ?? null;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function retrieveSecretArray(): array
     {
         $result = $this->retrieveApiArray();
         $result['answers'] = $this->getAnswers();
         $result['remark'] = $this->getRemark();
+
         return $result;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function retrieveApiArray(): array
     {
         return [
@@ -232,10 +282,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->status;
     }
 
-    public function setStatus(SessionStatus $status): static
+    public function setStatus(SessionStatus $status): void
     {
         $this->status = $status;
-        return $this;
     }
 
     public function getStartTime(): ?\DateTimeInterface
@@ -243,10 +292,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->startTime;
     }
 
-    public function setStartTime(?\DateTimeInterface $startTime): static
+    public function setStartTime(?\DateTimeInterface $startTime): void
     {
         $this->startTime = $startTime;
-        return $this;
     }
 
     public function getEndTime(): ?\DateTimeInterface
@@ -254,10 +302,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->endTime;
     }
 
-    public function setEndTime(?\DateTimeInterface $endTime): static
+    public function setEndTime(?\DateTimeInterface $endTime): void
     {
         $this->endTime = $endTime;
-        return $this;
     }
 
     public function getExpiresAt(): ?\DateTimeInterface
@@ -265,10 +312,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->expiresAt;
     }
 
-    public function setExpiresAt(?\DateTimeInterface $expiresAt): static
+    public function setExpiresAt(?\DateTimeInterface $expiresAt): void
     {
         $this->expiresAt = $expiresAt;
-        return $this;
     }
 
     public function getScore(): ?int
@@ -276,10 +322,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->score;
     }
 
-    public function setScore(?int $score): static
+    public function setScore(?int $score): void
     {
         $this->score = $score;
-        return $this;
     }
 
     public function getTotalScore(): ?int
@@ -287,15 +332,14 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->totalScore;
     }
 
-    public function setTotalScore(?int $totalScore): static
+    public function setTotalScore(?int $totalScore): void
     {
         $this->totalScore = $totalScore;
-        return $this;
     }
 
     public function getScorePercentage(): ?float
     {
-        if ($this->score === null || $this->totalScore === null || $this->totalScore === 0) {
+        if (null === $this->score || null === $this->totalScore || 0 === $this->totalScore) {
             return null;
         }
 
@@ -307,10 +351,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->attemptNumber;
     }
 
-    public function setAttemptNumber(int $attemptNumber): static
+    public function setAttemptNumber(int $attemptNumber): void
     {
         $this->attemptNumber = $attemptNumber;
-        return $this;
     }
 
     public function getDuration(): ?int
@@ -318,10 +361,9 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->duration;
     }
 
-    public function setDuration(?int $duration): static
+    public function setDuration(?int $duration): void
     {
         $this->duration = $duration;
-        return $this;
     }
 
     public function isPassed(): bool
@@ -329,15 +371,14 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->passed;
     }
 
-    public function setPassed(bool $passed): static
+    public function setPassed(bool $passed): void
     {
         $this->passed = $passed;
-        return $this;
     }
 
     public function getRemainingTime(): ?int
     {
-        if ($this->expiresAt === null || $this->status !== SessionStatus::IN_PROGRESS) {
+        if (null === $this->expiresAt || SessionStatus::IN_PROGRESS !== $this->status) {
             return null;
         }
 
@@ -349,7 +390,7 @@ class TestSession implements \Stringable, ApiArrayInterface
 
     public function isExpired(): bool
     {
-        if ($this->expiresAt === null) {
+        if (null === $this->expiresAt) {
             return false;
         }
 
@@ -361,19 +402,25 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->paper;
     }
 
-    public function setPaper(TestPaper $paper): static
+    public function setPaper(TestPaper $paper): void
     {
         $this->paper = $paper;
-        return $this;
-    }public function getAnswers(): ?array
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getAnswers(): ?array
     {
         return $this->answers;
     }
 
-    public function setAnswers(?array $answers): static
+    /**
+     * @param array<string, mixed>|null $answers
+     */
+    public function setAnswers(?array $answers): void
     {
         $this->answers = $answers;
-        return $this;
     }
 
     public function getRemark(): ?string
@@ -381,9 +428,8 @@ class TestSession implements \Stringable, ApiArrayInterface
         return $this->remark;
     }
 
-    public function setRemark(?string $remark): static
+    public function setRemark(?string $remark): void
     {
         $this->remark = $remark;
-        return $this;
     }
 }

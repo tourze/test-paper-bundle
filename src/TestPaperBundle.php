@@ -10,6 +10,7 @@ use Tourze\DoctrineSnowflakeBundle\DoctrineSnowflakeBundle;
 use Tourze\DoctrineTimestampBundle\DoctrineTimestampBundle;
 use Tourze\DoctrineUserBundle\DoctrineUserBundle;
 use Tourze\QuestionBankBundle\QuestionBankBundle;
+use Tourze\EasyAdminMenuBundle\EasyAdminMenuBundle;
 
 class TestPaperBundle extends Bundle implements BundleDependencyInterface
 {
@@ -22,6 +23,7 @@ class TestPaperBundle extends Bundle implements BundleDependencyInterface
             DoctrineSnowflakeBundle::class => ['all' => true],
             DoctrineUserBundle::class => ['all' => true],
             QuestionBankBundle::class => ['all' => true],
+            EasyAdminMenuBundle::class => ['all' => true],
         ];
     }
 }

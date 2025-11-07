@@ -4,26 +4,27 @@ declare(strict_types=1);
 
 namespace Tourze\TestPaperBundle\DataFixtures;
 
-use BizUserBundle\Entity\BizUser;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Tourze\TestPaperBundle\Entity\TestPaper;
 use Tourze\TestPaperBundle\Entity\TestSession;
 use Tourze\TestPaperBundle\Enum\SessionStatus;
+use Tourze\UserServiceContracts\UserManagerInterface;
 
 class TestSessionFixtures extends Fixture implements DependentFixtureInterface
 {
+    public function __construct(
+        private UserManagerInterface $userManager
+    ) {}
+
     public function load(ObjectManager $manager): void
     {
         $testPaper = $this->getReference(TestPaperFixtures::TEST_PAPER_1, TestPaper::class);
 
-        // 创建测试用户
-        $user = new BizUser();
-        $user->setUsername('test-session-user');
-        $user->setPlainPassword('password');
-
-        $manager->persist($user);
+        // 使用UserManagerInterface创建测试用户
+        $user = $this->userManager->createUser('test-session-user', null, null, 'password');
+        $this->userManager->saveUser($user);
 
         $session = new TestSession();
         $session->setPaper($testPaper);

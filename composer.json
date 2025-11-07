@@ -39,7 +39,6 @@
     "doctrine/doctrine-fixtures-bundle": "^4.0",
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^11.5",
-    "tourze/biz-user-bundle": "0.0.*",
     "tourze/phpunit-base": "1.*",
     "tourze/phpunit-doctrine-entity": "1.*",
     "tourze/phpunit-enum": "1.*",

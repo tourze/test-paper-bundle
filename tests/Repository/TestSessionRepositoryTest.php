@@ -2,7 +2,6 @@
 
 namespace Tourze\TestPaperBundle\Tests\Repository;
 
-use BizUserBundle\Entity\BizUser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\PHPUnitSymfonyKernelTest\AbstractRepositoryTestCase;
@@ -38,10 +37,9 @@ final class TestSessionRepositoryTest extends AbstractRepositoryTestCase
         $testPaper->setCreatedBy('test-user');
         $testPaper->setUpdatedBy('test-user');
 
-        // 创建测试用户
-        $user = new BizUser();
-        $user->setUsername(sprintf('test-user-%s', uniqid('', true)));
-        $user->setEmail(sprintf('test-%s@example.com', uniqid()));
+        // 使用UserManagerInterface创建真实的用户实体（支持Doctrine persist）
+        $userManager = self::getService(\Tourze\UserServiceContracts\UserManagerInterface::class);
+        $user = $userManager->createUser(sprintf('test-user-%s', uniqid('', true)), null, null, 'password', ['ROLE_USER']);
 
         $testSession->setPaper($testPaper);
         $testSession->setUser($user);
@@ -100,4 +98,5 @@ final class TestSessionRepositoryTest extends AbstractRepositoryTestCase
         $results = $this->getRepository()->findExpiredSessions();
         $this->assertIsArray($results);
     }
+
 }

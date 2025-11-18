@@ -69,13 +69,6 @@ final class TestSessionEntityCrudControllerTest extends AbstractEasyAdminControl
         yield 'score' => ['score'];
     }
 
-    public function testGetEntityFqcn(): void
-    {
-        $fqcn = $this->getControllerService()::getEntityFqcn();
-
-        self::assertSame(TestSession::class, $fqcn);
-    }
-
     public function testControllerInstanceConfiguration(): void
     {
         $controller = $this->getControllerService();

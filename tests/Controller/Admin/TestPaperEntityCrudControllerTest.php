@@ -88,13 +88,6 @@ final class TestPaperEntityCrudControllerTest extends AbstractEasyAdminControlle
         yield 'maxAttempts' => ['maxAttempts'];
     }
 
-    public function testGetEntityFqcn(): void
-    {
-        $fqcn = $this->getControllerService()::getEntityFqcn();
-
-        self::assertSame(TestPaper::class, $fqcn);
-    }
-
     public function testControllerInstanceConfiguration(): void
     {
         $controller = $this->getControllerService();

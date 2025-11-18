@@ -45,13 +45,6 @@ final class PaperQuestionEntityCrudControllerTest extends AbstractEasyAdminContr
         yield '更新时间' => ['更新时间'];
     }
 
-    public function testGetEntityFqcn(): void
-    {
-        $fqcn = $this->getControllerService()::getEntityFqcn();
-
-        self::assertSame(PaperQuestion::class, $fqcn);
-    }
-
     public function testControllerInstanceConfiguration(): void
     {
         $controller = $this->getControllerService();

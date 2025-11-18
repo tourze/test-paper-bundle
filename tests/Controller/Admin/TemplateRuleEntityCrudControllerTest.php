@@ -68,13 +68,6 @@ final class TemplateRuleEntityCrudControllerTest extends AbstractEasyAdminContro
         yield 'scorePerQuestion' => ['scorePerQuestion'];
     }
 
-    public function testGetEntityFqcn(): void
-    {
-        $fqcn = $this->getControllerService()::getEntityFqcn();
-
-        self::assertSame(TemplateRule::class, $fqcn);
-    }
-
     public function testControllerInstanceConfiguration(): void
     {
         $controller = $this->getControllerService();

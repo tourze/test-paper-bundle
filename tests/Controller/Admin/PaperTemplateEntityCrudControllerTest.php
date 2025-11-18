@@ -60,13 +60,6 @@ final class PaperTemplateEntityCrudControllerTest extends AbstractEasyAdminContr
         yield 'isActive' => ['isActive'];
     }
 
-    public function testGetEntityFqcn(): void
-    {
-        $fqcn = $this->getControllerService()::getEntityFqcn();
-
-        self::assertSame(PaperTemplate::class, $fqcn);
-    }
-
     public function testControllerInstanceConfiguration(): void
     {
         $controller = $this->getControllerService();

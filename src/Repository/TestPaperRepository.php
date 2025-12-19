@@ -143,7 +143,7 @@ class TestPaperRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $status = $row['status'] ?? null;
             /** @var string $statusValue */
-            $statusValue = $status instanceof PaperStatus ? $status->value : (string) $status; // @phpstan-ignore cast.string
+            $statusValue = $status instanceof PaperStatus ? $status->value : (string) $status;
             $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
             $statistics[$statusValue] = $count;
         }
@@ -168,7 +168,7 @@ class TestPaperRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $generationType = $row['generationType'] ?? null;
             /** @var string $typeValue */
-            $typeValue = $generationType instanceof PaperGenerationType ? $generationType->value : (string) $generationType; // @phpstan-ignore cast.string
+            $typeValue = $generationType instanceof PaperGenerationType ? $generationType->value : (string) $generationType;
             $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
             $statistics[$typeValue] = $count;
         }

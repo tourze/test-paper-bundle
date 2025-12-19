@@ -139,7 +139,7 @@ class PaperQuestionRepository extends ServiceEntityRepository
                 $typeKey = $typeValue;
             } elseif (null !== $typeValue) {
                 /** @var string $typeKey */
-                $typeKey = (string) $typeValue; // @phpstan-ignore cast.string
+                $typeKey = (string) $typeValue;
             }
 
             $count = $row['count'] ?? 0;
@@ -174,7 +174,7 @@ class PaperQuestionRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $difficultyValue = $row['difficulty'] ?? '';
             /** @var string $difficultyKey */
-            $difficultyKey = is_string($difficultyValue) ? $difficultyValue : (string) $difficultyValue; // @phpstan-ignore cast.string
+            $difficultyKey = is_string($difficultyValue) ? $difficultyValue : (string) $difficultyValue;
 
             $count = $row['count'] ?? 0;
             $totalScore = $row['totalScore'] ?? 0;

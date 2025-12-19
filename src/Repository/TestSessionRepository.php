@@ -149,7 +149,7 @@ class TestSessionRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $status = $row['status'] ?? '';
             /** @var string $statusKey */
-            $statusKey = is_string($status) ? $status : (string) $status; // @phpstan-ignore cast.string
+            $statusKey = is_string($status) ? $status : (string) $status;
             $count = $row['count'] ?? 0;
 
             $statistics[$statusKey] = is_numeric($count) ? (int) $count : 0;

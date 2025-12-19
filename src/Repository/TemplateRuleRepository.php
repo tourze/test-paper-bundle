@@ -101,7 +101,7 @@ class TemplateRuleRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $questionTypeValue = $row['questionType'] ?? '';
             /** @var string $questionType */
-            $questionType = is_string($questionTypeValue) ? $questionTypeValue : (string) $questionTypeValue; // @phpstan-ignore cast.string
+            $questionType = is_string($questionTypeValue) ? $questionTypeValue : (string) $questionTypeValue;
             $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
             $totalScore = is_numeric($row['totalScore'] ?? 0) ? (int) ($row['totalScore'] ?? 0) : 0;
 
@@ -134,7 +134,7 @@ class TemplateRuleRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $difficultyValue = $row['difficulty'] ?? '';
             /** @var string $difficulty */
-            $difficulty = is_string($difficultyValue) ? $difficultyValue : (string) $difficultyValue; // @phpstan-ignore cast.string
+            $difficulty = is_string($difficultyValue) ? $difficultyValue : (string) $difficultyValue;
             $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
             $totalScore = is_numeric($row['totalScore'] ?? 0) ? (int) ($row['totalScore'] ?? 0) : 0;
 
@@ -168,7 +168,7 @@ class TemplateRuleRepository extends ServiceEntityRepository
         foreach ($result as $row) {
             $nameValue = $row['name'] ?? '';
             /** @var string $name */
-            $name = is_string($nameValue) ? $nameValue : (string) $nameValue; // @phpstan-ignore cast.string
+            $name = is_string($nameValue) ? $nameValue : (string) $nameValue;
             $count = is_numeric($row['count'] ?? 0) ? (int) ($row['count'] ?? 0) : 0;
             $totalScore = is_numeric($row['totalScore'] ?? 0) ? (int) ($row['totalScore'] ?? 0) : 0;
 

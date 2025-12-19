@@ -4,7 +4,7 @@ namespace Tourze\TestPaperBundle\DependencyInjection;
 
 use Tourze\SymfonyDependencyServiceLoader\AutoExtension;
 
-class TestPaperExtension extends AutoExtension
+final class TestPaperExtension extends AutoExtension
 {
     protected function getConfigDir(): string
     {
